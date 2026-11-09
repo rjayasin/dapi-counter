@@ -1765,7 +1765,9 @@
         ctx.setTransform(s, 0, 0, s, -box.x * s, -box.y * s);
         ctx.imageSmoothingEnabled = true;
         ctx.drawImage(cur.img || cur.work, 0, 0, cur.work.width, cur.work.height);
-        if (cur.result && !ui.peek && ui.view === 'marks') drawMarks(ctx, cur, ui.px);
+        if (cur.result && !ui.peek && ui.view === 'marks') {
+          drawMarks(ctx, cur, ui.px, ui.numbers, groupPick());
+        }
         const um = umPerPx(cur);
         if (um) {
           const umPerDevPx = (um * cur.origW * box.w) / (cur.work.width * cw);
@@ -1774,8 +1776,9 @@
       }
 
       // A dot per nucleus, on a context in working-image coordinates where
-      // one CSS pixel is `px`.
-      function drawMarks(g, t, px, numbers = ui.numbers) {
+      // one CSS pixel is `px`. `pick` is a nucleus about to be clicked into
+      // the group: its dot and number get a white stroke.
+      function drawMarks(g, t, px, numbers = ui.numbers, pick = null) {
         const { nuclei } = t.result;
         g.lineJoin = 'round';
         g.lineCap = 'round';
@@ -1793,6 +1796,11 @@
             g.fill();
             g.lineWidth = px;
             g.strokeStyle = 'rgba(0,0,0,0.7)';
+            g.stroke();
+          }
+          if (q === pick) {
+            g.lineWidth = 2 * px;
+            g.strokeStyle = '#fff';
             g.stroke();
           }
           // A yellow ring marks a nucleus in any group, and a white one
@@ -1837,6 +1845,7 @@
             if (!parts.length) continue;
             let x = q.x + r + (q.groups?.length ? 3.5 : 1.5) * px;
             const y = q.y - 0.6 * r;
+            g.strokeStyle = q === pick ? '#fff' : 'rgba(0,0,0,0.9)';
             for (const [text, colour] of parts) {
               g.fillStyle = colour;
               g.strokeText(text, x, y);
@@ -2038,10 +2047,18 @@
           (h?.nucleus ?? null) === (ui.hover?.nucleus ?? null) &&
           (h?.organoid ?? null) === (ui.hover?.organoid ?? null);
         if (same) return;
+        const before = groupPick();
         ui.hover = h;
         for (const [k, tr] of [...rowsEl.children].entries()) {
           tr.classList.toggle('hot', h?.organoid === k + 1);
         }
+        if (groupPick() !== before) render();
+      }
+
+      // While adding to the group, the hovered nucleus if a click would add it.
+      function groupPick() {
+        const q = ui.grouping ? ui.hover?.nucleus : null;
+        return q && !q.groups?.length ? q : null;
       }
 
       // ---- Canvas interaction and editing ----------------------------------

@@ -1,0 +1,3283 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ruvan / dapi-counter</title>
+    <link rel="icon" id="favicon" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html {
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+      }
+
+      :root {
+        --muted: #6b7280;
+        --fg: #111827;
+        --bg: #ffffff;
+        --card: #f9fafb;
+        --border: #e5e7eb;
+        --accent: #00a2ff;
+        --perim: #ff3d9a;
+        --inner: #22c3ee;
+        --group: #ffd400;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu,
+          sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
+        padding: 40px 24px 80px;
+        max-width: 960px;
+        margin: 0 auto;
+        color: var(--fg);
+        background: var(--bg);
+        color-scheme: light;
+        transition:
+          background-color 0.2s ease,
+          color 0.2s ease;
+      }
+
+      body.dark {
+        color-scheme: dark;
+        --muted: #9ca3af;
+        --fg: #f5f5f5;
+        --bg: #111111;
+        --card: #1a1a1a;
+        --border: #2a2a2a;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body:not(.light) {
+          color-scheme: dark;
+          --muted: #9ca3af;
+          --fg: #f5f5f5;
+          --bg: #111111;
+          --card: #1a1a1a;
+          --border: #2a2a2a;
+        }
+      }
+
+      header {
+        margin-bottom: 20px;
+      }
+
+      header a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      header a:hover {
+        text-decoration: underline;
+      }
+
+      .intro {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-top: 4px;
+      }
+
+      #help-open {
+        flex-shrink: 0;
+        font-size: 12px;
+        padding: 1px 8px;
+        border-radius: 6px;
+        white-space: nowrap;
+      }
+
+      #help {
+        max-width: min(560px, calc(100vw - 32px));
+        margin: auto;
+        padding: 20px 22px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--bg);
+        color: var(--fg);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+      }
+
+      #help::backdrop {
+        background: rgba(0, 0, 0, 0.4);
+      }
+
+      #help h2 {
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 20px;
+        font-weight: 500;
+        margin-bottom: 8px;
+      }
+
+      #help p + p,
+      #help ul {
+        margin-top: 8px;
+      }
+
+      #help ul {
+        padding-left: 18px;
+      }
+
+      #help .close {
+        float: right;
+        display: grid;
+        place-items: center;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        margin: -6px -8px 0 8px;
+        color: var(--muted);
+      }
+
+      h1 {
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 28px;
+        font-weight: 500;
+        letter-spacing: -0.01em;
+      }
+
+      h1 .crumb {
+        color: var(--muted);
+        font-weight: 400;
+      }
+
+      .subtitle {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      section {
+        margin-top: 22px;
+      }
+
+      section > h2,
+      .table-head h2 {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--accent);
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px 16px;
+      }
+
+      button,
+      .button {
+        font: inherit;
+        color: inherit;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 6px 12px;
+        cursor: pointer;
+        transition:
+          border-color 0.15s ease,
+          background-color 0.15s ease,
+          color 0.15s ease;
+      }
+
+      button:hover,
+      .button:hover {
+        border-color: var(--accent);
+      }
+
+      button.active {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      button:disabled {
+        opacity: 0.4;
+        cursor: default;
+        border-color: var(--border);
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ---- Drop zone --------------------------------------------------- */
+
+      #drop {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        min-height: 160px;
+        border: 1.5px dashed var(--border);
+        border-radius: 10px;
+        color: var(--muted);
+        text-align: center;
+        padding: 20px;
+        transition:
+          border-color 0.15s ease,
+          color 0.15s ease;
+      }
+
+      body.dragging #drop {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      #drop.compact {
+        min-height: 0;
+        flex-direction: row;
+        flex-wrap: wrap;
+        padding: 10px 14px;
+        justify-content: flex-start;
+      }
+
+      #file {
+        display: none;
+      }
+
+      #file-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        min-width: 0;
+        flex: 1;
+        text-align: left;
+      }
+
+      #error {
+        color: #dc2626;
+        margin-top: 10px;
+        font-size: 13px;
+      }
+
+      body.dark #error {
+        color: #f87171;
+      }
+
+      /* ---- Summary ----------------------------------------------------- */
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+      }
+
+      .stat {
+        display: flex;
+        flex-direction: column;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 14px;
+      }
+
+      .stat .label {
+        flex: 1;
+        color: var(--muted);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .stat .value {
+        font-size: 22px;
+        font-variant-numeric: tabular-nums;
+        margin-top: 2px;
+      }
+
+      .stat .sub {
+        color: var(--muted);
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+      }
+
+      #image-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+        gap: 6px;
+      }
+
+      .image-chip {
+        display: flex;
+        align-items: stretch;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        min-width: 0;
+      }
+
+      .image-chip.active {
+        border-color: var(--accent);
+      }
+
+      .image-chip button {
+        border: none;
+        background: none;
+        border-radius: 8px;
+      }
+
+      .image-chip .pick {
+        flex: 1;
+        min-width: 0;
+        text-align: left;
+        padding: 5px 4px 5px 10px;
+      }
+
+      .image-chip .nm,
+      .image-chip .st {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .image-chip .nm {
+        font-size: 12px;
+      }
+
+      .image-chip.active .nm {
+        color: var(--accent);
+      }
+
+      .image-chip .st {
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .image-chip .rm {
+        color: var(--muted);
+        padding: 0 10px;
+        font-size: 15px;
+      }
+
+      .image-chip .rm:hover {
+        color: var(--fg);
+      }
+
+      .scale-row {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 10px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .scale-row input {
+        width: 90px;
+        font-size: 12.5px;
+        color: var(--fg);
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 3px 6px;
+      }
+
+      .scale-row.missing input {
+        border-color: var(--accent);
+      }
+
+      .scale-row.missing .scale-note {
+        color: var(--accent);
+      }
+
+      .scale-row button {
+        padding: 2px 8px;
+        font-size: 11px;
+      }
+
+      /* ---- Image ------------------------------------------------------- */
+
+      .view-bar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-bottom: 8px;
+      }
+
+      .view-bar button {
+        padding: 3px 10px;
+        font-size: 12px;
+      }
+
+      .view-bar .check {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 12px;
+        margin-left: 4px;
+        cursor: pointer;
+        user-select: none;
+      }
+
+      .view-bar .check input {
+        accent-color: var(--accent);
+        cursor: pointer;
+      }
+
+      .view-bar .sep {
+        width: 1px;
+        align-self: stretch;
+        background: var(--border);
+        margin: 0 4px;
+      }
+
+      .legend {
+        display: flex;
+        gap: 12px;
+        margin-left: auto;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .dot {
+        display: inline-block;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        margin-right: 5px;
+        vertical-align: 0;
+      }
+
+      .dot.perim {
+        background: var(--perim);
+      }
+
+      .dot.inner {
+        background: var(--inner);
+      }
+
+      .dot.out {
+        border: 1.5px solid #9ca3af;
+      }
+
+      .dot.group {
+        border: 2px solid var(--group);
+      }
+
+      #new-group.active {
+        border-color: var(--group);
+        color: var(--fg);
+        background: color-mix(in srgb, var(--group) 25%, var(--card));
+      }
+
+      #group-rows tr {
+        cursor: default;
+      }
+
+      #group-rows tr.active td:first-child {
+        font-weight: 600;
+      }
+
+      #group-rows button {
+        padding: 1px 8px;
+        font-size: 11px;
+      }
+
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
+      .hint {
+        color: var(--muted);
+        font-size: 12px;
+        margin-bottom: 8px;
+      }
+
+      #hint {
+        display: grid;
+      }
+
+      #hint > span {
+        grid-area: 1 / 1;
+      }
+
+      #hint > span.off {
+        visibility: hidden;
+      }
+
+      #canvas-wrap {
+        position: relative;
+        background: #000;
+        border-radius: 10px;
+        overflow: hidden;
+        line-height: 0;
+      }
+
+      #canvas {
+        width: 100%;
+        height: auto;
+        display: block;
+        cursor: crosshair;
+      }
+
+      #tip {
+        position: absolute;
+        pointer-events: none;
+        background: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        font-size: 12px;
+        line-height: 1.4;
+        padding: 4px 8px;
+        border-radius: 6px;
+        white-space: nowrap;
+        transform: translate(12px, 12px);
+      }
+
+      #busy {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.7);
+        color: #fff;
+        font-size: 12px;
+        line-height: 1.4;
+        padding: 4px 10px;
+        border-radius: 6px;
+      }
+
+      /* ---- Tuning ------------------------------------------------------ */
+
+      .knob {
+        display: grid;
+        grid-template-columns: 190px 1fr 90px 46px;
+        align-items: center;
+        gap: 10px;
+        padding: 4px 0;
+      }
+
+      .knob + .knob {
+        border-top: 1px solid var(--border);
+      }
+
+      .knob label {
+        font-size: 13px;
+      }
+
+      .knob .why {
+        display: block;
+        color: var(--muted);
+        font-size: 11.5px;
+        line-height: 1.3;
+      }
+
+      .knob input[type='range'] {
+        width: 100%;
+        accent-color: var(--accent);
+      }
+
+      .knob output {
+        text-align: right;
+        font-size: 12.5px;
+      }
+
+      .knob button {
+        padding: 2px 6px;
+        font-size: 11px;
+      }
+
+      /* ---- Table ------------------------------------------------------- */
+
+      .table-head {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+      }
+
+      .table-head .actions {
+        margin-left: auto;
+        display: flex;
+        gap: 6px;
+      }
+
+      .table-head .actions button {
+        padding: 3px 10px;
+        font-size: 12px;
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-variant-numeric: tabular-nums;
+      }
+
+      th,
+      td {
+        padding: 6px 12px;
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      th {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        font-weight: 600;
+        background: var(--card);
+        border-bottom: 1px solid var(--border);
+      }
+
+      th:first-child,
+      td:first-child {
+        text-align: left;
+      }
+
+      tbody tr {
+        cursor: pointer;
+        border-top: 1px solid var(--border);
+      }
+
+      tbody tr:first-child {
+        border-top: none;
+      }
+
+      tbody tr.hot {
+        background: var(--card);
+      }
+
+      tbody tr.excluded td {
+        color: var(--muted);
+        text-decoration: line-through;
+      }
+
+      .note {
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 8px;
+      }
+
+      @media (max-width: 640px) {
+        body {
+          padding: 32px 16px 64px;
+        }
+
+        .knob {
+          grid-template-columns: 1fr 84px 40px;
+        }
+
+        .knob input[type='range'] {
+          grid-column: 1 / -1;
+          grid-row: 2;
+        }
+
+        .legend {
+          margin-left: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>
+        <a href="https://rjayasin.github.io/">Ruvan</a> <span class="crumb">/ dapi-counter</span>
+      </h1>
+      <div class="intro">
+        <p class="subtitle">
+          An automated image analysis tool for counting DAPI-stained nuclei on the perimeter of
+          organoids.
+        </p>
+        <button type="button" id="help-open" aria-haspopup="dialog">how to use</button>
+      </div>
+    </header>
+
+    <dialog id="help" aria-labelledby="help-title">
+      <form method="dialog">
+        <button type="submit" class="close" aria-label="Close">
+          <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+            <path
+              d="M1 1L11 11M11 1L1 11"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+            />
+          </svg>
+        </button>
+      </form>
+      <h2 id="help-title">How to use</h2>
+      <p>
+        Upload a DAPI image of one or more organoids (JPEG, PNG, TIFF or HEIC). The tool finds each
+        nucleus, outlines each organoid, and counts the nuclei that sit on its perimeter: those
+        centred within the perimeter depth of the outline. Hover over an organoid to see its
+        outline.
+      </p>
+      <ul>
+        <li>Click a nucleus to switch it between perimeter and interior.</li>
+        <li>Click an empty spot to add a nucleus the tool missed.</li>
+        <li>Right-click (or shift-click) a nucleus to remove it. ⌘Z undoes.</li>
+        <li>
+          Hold the right mouse button away from any nucleus to see the image without markings.
+        </li>
+        <li>
+          Numbers count each organoid’s perimeter nuclei clockwise from the top, then its interior
+          ones, so the last pink number is the perimeter count. Press N to hide or show them.
+        </li>
+        <li>Click a row in the organoid table to leave that organoid out.</li>
+        <li>
+          Click “new group” (or press G), then click nuclei to count them as a group of their own.
+          Each gets a yellow ring and a yellow number in the order you click. Click a nucleus again
+          to take it out. Press Esc or click “new group” again to finish. A nucleus can be in
+          several groups, and groups don’t change the organoid counts.
+        </li>
+      </ul>
+      <p>
+        If counts look off across the whole image, adjust the sliders under Tuning; hand edits are
+        kept when you do. Everything runs in your browser; images are never uploaded.
+      </p>
+    </dialog>
+
+    <div id="drop">
+      <span id="drop-text">Drop images here, paste one, or</span>
+      <label class="button" for="file">choose files</label>
+      <input type="file" id="file" accept="image/*,.tif,.tiff,.heic,.heif" multiple />
+      <span id="file-name" class="mono" hidden></span>
+    </div>
+    <div id="error"></div>
+
+    <section id="images" hidden>
+      <div class="table-head">
+        <h2>Images</h2>
+        <span class="note" id="images-count"></span>
+        <div class="actions">
+          <button type="button" id="xlsx-all">download xlsx</button>
+          <button type="button" id="clear-all">clear all</button>
+        </div>
+      </div>
+      <div id="image-list"></div>
+    </section>
+
+    <section id="summary-section" hidden>
+      <h2>Summary</h2>
+      <div class="scale-row" id="scale-row">
+        <label for="um-per-px">pixel size</label>
+        <input type="number" id="um-per-px" class="mono" min="0" step="any" placeholder="?" />
+        <span>µm / px</span>
+        <button type="button" id="scale-reset" hidden></button>
+        <button type="button" id="scale-all" hidden>use for all images</button>
+        <span class="scale-note" id="scale-note"></span>
+      </div>
+      <div class="stats">
+        <div class="stat">
+          <div class="label">Perimeter nuclei</div>
+          <div class="value" id="s-perim">–</div>
+          <div class="sub" id="s-perim-sub"></div>
+        </div>
+        <div class="stat">
+          <div class="label">All nuclei</div>
+          <div class="value" id="s-nuclei">–</div>
+          <div class="sub" id="s-nuclei-sub"></div>
+        </div>
+        <div class="stat">
+          <div class="label">Perimeter length</div>
+          <div class="value" id="s-length">–</div>
+          <div class="sub" id="s-length-sub"></div>
+        </div>
+        <div class="stat">
+          <div class="label">Perimeter density</div>
+          <div class="value" id="s-density">–</div>
+          <div class="sub" id="s-density-sub"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="image-section" hidden>
+      <h2>Nuclei</h2>
+      <div class="view-bar" role="group" aria-label="view">
+        <button type="button" data-view="original">original</button>
+        <button type="button" data-view="marks" class="active">marks</button>
+        <button type="button" id="zoom" class="active" title="Crop to the organoids">zoom</button>
+        <label class="check" title="Number each nucleus (N)">
+          <input type="checkbox" id="numbers" />
+          show numbers
+        </label>
+        <span class="sep"></span>
+        <button
+          type="button"
+          id="new-group"
+          title="Click nuclei to count them as a group of their own (G)"
+        >
+          new group
+        </button>
+        <button type="button" id="undo" title="Undo the last edit (⌘Z)" disabled>undo</button>
+        <button type="button" id="clear-edits" title="Drop every hand edit on this image" disabled>
+          clear edits
+        </button>
+        <button type="button" id="save-image" title="Download the image with its markings">
+          save image
+        </button>
+        <span class="legend">
+          <span><span class="dot perim"></span>perimeter</span>
+          <span><span class="dot inner"></span>interior</span>
+          <span><span class="dot group"></span>group</span>
+          <span><span class="dot out"></span>outside</span>
+        </span>
+      </div>
+      <!-- Both hints share one grid cell, so the row is as tall as the longer
+           one whichever is showing and the image below doesn't move. -->
+      <p class="hint" id="hint">
+        <span id="hint-edit">
+          click a nucleus to switch perimeter / interior · click empty space to add one ·
+          right-click a nucleus to remove it · hold right click elsewhere for the original
+        </span>
+        <span id="hint-group">
+          adding to a new group: click nuclei to put them in it · click or right-click one again to
+          take it out · click empty space to add a nucleus to it · Esc or “new group” again to
+          finish
+        </span>
+      </p>
+      <div id="canvas-wrap">
+        <canvas id="canvas"></canvas>
+        <div id="tip" hidden></div>
+        <div id="busy" hidden>analysing…</div>
+      </div>
+    </section>
+
+    <section id="tune-section" hidden>
+      <h2>Tuning</h2>
+      <div class="card" id="knobs"></div>
+    </section>
+
+    <section id="table-section" hidden>
+      <div class="table-head">
+        <h2>Organoids</h2>
+        <div class="actions">
+          <button type="button" id="include-all">include all</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>perimeter nuclei</th>
+              <th>interior</th>
+              <th>% perimeter</th>
+              <th id="th-length">perimeter</th>
+              <th id="th-density">per 100 µm</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <p class="note" id="table-note"></p>
+    </section>
+
+    <section id="groups-section" hidden>
+      <h2>Groups</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>group</th>
+              <th>nuclei</th>
+              <th>perimeter</th>
+              <th>interior</th>
+              <th>outside</th>
+              <th><span class="visually-hidden">delete</span></th>
+            </tr>
+          </thead>
+          <tbody id="group-rows"></tbody>
+        </table>
+      </div>
+      <p class="note">
+        A nucleus can be in several groups. Groups are counted on their own and don’t change the
+        organoid counts above.
+      </p>
+    </section>
+
+    <script>
+      {
+        const c = document.createElement('canvas');
+        c.width = c.height = 64;
+        const ctx = c.getContext('2d');
+        ctx.font = '48px serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🔬', 32, 35);
+        document.getElementById('favicon').href = c.toDataURL();
+      }
+
+      // Mirror the system theme into body.dark; 1 flips it.
+      if (matchMedia('(prefers-color-scheme: dark)').matches) document.body.classList.add('dark');
+      document.addEventListener('keydown', (e) => {
+        const t = e.target;
+        if (e.key !== '1' || e.repeat || e.metaKey || e.ctrlKey) return;
+        if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable) return;
+        const dark = !document.body.classList.contains('dark');
+        document.body.classList.toggle('dark', dark);
+        document.body.classList.toggle('light', !dark);
+      });
+
+      const help = document.getElementById('help');
+      document.getElementById('help-open').addEventListener('click', () => help.showModal());
+      help.addEventListener('click', (e) => {
+        const r = help.getBoundingClientRect();
+        const inside =
+          e.clientX >= r.left &&
+          e.clientX <= r.right &&
+          e.clientY >= r.top &&
+          e.clientY <= r.bottom;
+        if (!inside) help.close();
+      });
+
+      // ==== analysis start ===================================================
+      // Image analysis, all on a copy of the image scaled to at most WORK_MAX px:
+      //   1. Nuclei are bright round blobs on a dark background. A difference
+      //      of Gaussians tuned to the nucleus size peaks once at the centre
+      //      of each, even where neighbours touch. The size is picked as the
+      //      scale where those peaks respond most strongly.
+      //   2. Peaks weaker than the contrast threshold, closer than the
+      //      spacing to a stronger one, or too small to be a nucleus (specks of
+      //      debris) are dropped.
+      //   3. Each organoid is the bright tissue around its nuclei, closed over
+      //      the gaps between neighbouring nuclei and with its lumen filled.
+      //   4. A nucleus is on the perimeter when its centre lies within the
+      //      perimeter depth of the organoid's outline.
+
+      const WORK_MAX = 1600;
+
+      const DEFAULTS = {
+        size: null, // nucleus diameter in working px; null = estimate from the image
+        contrast: null, // null = pick from how strongly the nuclei stand out
+        spacing: 0.4, // closest two nuclei can be, × the nucleus size
+        speck: 0.2, // smallest blob counted, × a nucleus's area
+        bridge: 2.5, // widest gap the outline closes over, × the nucleus size
+        depth: 1.4, // perimeter band, × the nucleus size
+        minNuclei: 8, // smallest organoid, in nuclei
+      };
+
+      function computeFeatures(rgba, W, H, knownSize) {
+        const N = W * H;
+        const G = new Float32Array(N);
+        for (let i = 0, j = 0; i < N; i++, j += 4) {
+          G[i] = Math.max(rgba[j], rgba[j + 1], rgba[j + 2]);
+        }
+        // Most of a fluorescence image is dark background.
+        const bg = quantile(G, 0.25);
+        const dev = new Float32Array(N);
+        for (let i = 0; i < N; i++) dev[i] = Math.abs(G[i] - bg);
+        const noise = Math.max(0.5, 1.4826 * quantile(dev, 0.5));
+        const F = { W, H, N, G, Gs: gauss(G, W, H, 1), bg, noise };
+        F.autoSize = knownSize || estimateSize(F);
+        return F;
+      }
+
+      // Difference of Gaussians tuned to blobs `d` px across.
+      function dog(G, W, H, d) {
+        const s = d / (2 * Math.SQRT2);
+        const A = gauss(G, W, H, s);
+        const B = gauss(G, W, H, 1.6 * s);
+        for (let i = 0; i < A.length; i++) B[i] = A[i] - B[i];
+        return B;
+      }
+
+      // Seed points from a fine-scale search; each one's size is the scale
+      // where its response peaks (a disc d px across peaks at d). Clumps pick
+      // large scales and specks small ones, so take a typical seed, nudged
+      // up a little since nuclei are often oval.
+      function estimateSize(F) {
+        const { W, H, G } = F;
+        const floor = Math.max(3, 6 * F.noise);
+        const seeds = findPeaks(dog(G, W, H, 8), W, H, 4, floor);
+        if (seeds.length < 5) return 12;
+        const best = new Float32Array(seeds.length);
+        const at = new Float32Array(seeds.length);
+        for (let d = 5; d <= Math.min(80, Math.min(W, H) / 6); d *= 1.12) {
+          const D = dog(G, W, H, d);
+          seeds.forEach((i, k) => D[i] > best[k] && ((best[k] = D[i]), (at[k] = d)));
+        }
+        const sizes = [...at].filter((_, k) => best[k] > 2 * floor).sort((a, b) => a - b);
+        if (sizes.length < 5) return 12;
+        return Math.round(1.2 * sizes[sizes.length >> 1] * 2) / 2;
+      }
+
+      // Pixels of `D` above `floor` that are the largest within `m` px.
+      function findPeaks(D, W, H, m, floor) {
+        const ox = [];
+        const oy = [];
+        for (let dy = -m; dy <= m; dy++) {
+          for (let dx = -m; dx <= m; dx++) {
+            if ((dx || dy) && dx * dx + dy * dy <= m * m) ox.push(dx), oy.push(dy);
+          }
+        }
+        const out = [];
+        for (let y = 0; y < H; y++) {
+          for (let x = 0; x < W; x++) {
+            const i = y * W + x;
+            const v = D[i];
+            if (v < floor) continue;
+            // Cheap rejection by the four neighbours first.
+            if ((x > 0 && D[i - 1] > v) || (x < W - 1 && D[i + 1] >= v)) continue;
+            if ((y > 0 && D[i - W] > v) || (y < H - 1 && D[i + W] >= v)) continue;
+            let peak = true;
+            for (let k = 0; k < ox.length; k++) {
+              const X = x + ox[k];
+              const Y = y + oy[k];
+              if (X < 0 || Y < 0 || X >= W || Y >= H) continue;
+              const u = D[Y * W + X];
+              // Break ties towards the first pixel in reading order.
+              if (u > v || (u === v && (oy[k] < 0 || (oy[k] === 0 && ox[k] < 0)))) {
+                peak = false;
+                break;
+              }
+            }
+            if (peak) out.push(i);
+          }
+        }
+        return out;
+      }
+
+      function detectNuclei(F, p) {
+        const { W, H, N, G, Gs, bg } = F;
+        const d = p.size ?? F.autoSize;
+        const D = dog(G, W, H, d);
+        const floor = Math.max(1, 3 * F.noise);
+        const cands = findPeaks(D, W, H, Math.max(1, Math.round(d * p.spacing)), floor);
+        const vs = cands.map((i) => D[i]).sort((a, b) => a - b);
+        // A third of a typical bright nucleus's response.
+        const autoContrast = vs.length
+          ? Math.round(Math.max(floor, 0.3 * vs[Math.floor(0.75 * (vs.length - 1))]) * 2) / 2
+          : floor;
+        const thr = p.contrast ?? autoContrast;
+        const minArea = p.speck * Math.PI * (d / 2) ** 2;
+        const seen = new Int32Array(N);
+        const stack = new Int32Array(N);
+        const pts = [];
+        for (const i of cands) {
+          if (D[i] < thr) continue;
+          if (minArea >= 1 && blobArea(i, pts.length + 1) < minArea) continue;
+          pts.push({ x: (i % W) + 0.5, y: ((i / W) | 0) + 0.5 });
+        }
+        return { d, thr, autoContrast, pts };
+
+        // Pixels around `i` at least half as bright as it, up to `cap`.
+        function blobArea(i, tag) {
+          const cut = bg + 0.5 * (Gs[i] - bg);
+          const R2 = (0.75 * d) ** 2;
+          const cx = i % W;
+          const cy = (i / W) | 0;
+          let sp = 0;
+          let n = 0;
+          stack[sp++] = i;
+          seen[i] = tag;
+          while (sp && n < minArea) {
+            const q = stack[--sp];
+            n++;
+            const x = q % W;
+            const y = (q / W) | 0;
+            for (const [nx, ny] of [
+              [x - 1, y],
+              [x + 1, y],
+              [x, y - 1],
+              [x, y + 1],
+            ]) {
+              if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+              const r = ny * W + nx;
+              if (seen[r] === tag || Gs[r] < cut) continue;
+              if ((nx - cx) ** 2 + (ny - cy) ** 2 > R2) continue;
+              seen[r] = tag;
+              stack[sp++] = r;
+            }
+          }
+          return n;
+        }
+      }
+
+      // Hand edits, stored as positions so they survive re-detection: each
+      // removal and perimeter override applies to the nearest nucleus within
+      // `tol` px.
+      function applyEdits(pts, edits, tol) {
+        const t2 = tol * tol;
+        const nearest = (list, x, y) => {
+          let best = -1;
+          let bd = t2;
+          list.forEach((q, k) => {
+            const dd = (q.x - x) ** 2 + (q.y - y) ** 2;
+            if (!q.gone && dd <= bd) (bd = dd), (best = k);
+          });
+          return best;
+        };
+        const list = pts.map((q) => ({ x: q.x, y: q.y }));
+        for (const e of edits.removed) {
+          const k = nearest(list, e.x, e.y);
+          if (k >= 0) list[k].gone = true;
+        }
+        const out = list.filter((q) => !q.gone);
+        edits.forced.forEach((e, fi) => {
+          const k = nearest(out, e.x, e.y);
+          if (k >= 0) Object.assign(out[k], { force: e.p, fi });
+        });
+        edits.added.forEach((e, ai) => out.push({ x: e.x, y: e.y, force: e.p, added: true, ai }));
+        // Groups: each member is the position of a nucleus clicked into it. A
+        // nucleus can be in any number of groups; `groups` lists them as
+        // { g: group number, m: index in that group's members }.
+        for (const q of out) q.groups = [];
+        (edits.groups || []).forEach((grp, gi) =>
+          grp.members.forEach((e, m) => {
+            const k = nearest(out, e.x, e.y);
+            if (k >= 0 && !out[k].groups.some((x) => x.g === gi + 1)) {
+              out[k].groups.push({ g: gi + 1, m });
+            }
+          })
+        );
+        return out;
+      }
+
+      // Organoid outlines around the nuclei.
+      function findOrganoids(F, nuclei, d, p) {
+        const { W, H, N, Gs, bg } = F;
+        const at = (q) => Math.floor(q.y) * W + Math.floor(q.x);
+        let m = new Uint8Array(N);
+        if (nuclei.length) {
+          // Tissue: brighter than a third of a typical nucleus, in pieces
+          // that hold a nucleus.
+          const lv = nuclei.map((q) => Gs[at(q)] - bg).sort((a, b) => a - b);
+          const cut = bg + 0.3 * Math.max(1, lv[lv.length >> 1]);
+          for (let i = 0; i < N; i++) m[i] = Gs[i] > cut ? 1 : 0;
+          const { lab, sizes } = components(m, W, H);
+          const keep = new Uint8Array(sizes.length);
+          for (const q of nuclei) keep[lab[at(q)]] = 1;
+          for (let i = 0; i < N; i++) if (m[i] && !keep[lab[i]]) m[i] = 0;
+          // Plus a disc for each nucleus, for dim ones and hand-added ones.
+          const r = Math.max(1, d / 2);
+          for (const q of nuclei) {
+            for (let y = Math.max(0, Math.floor(q.y - r)); y <= Math.min(H - 1, q.y + r); y++) {
+              for (let x = Math.max(0, Math.floor(q.x - r)); x <= Math.min(W - 1, q.x + r); x++) {
+                if ((x + 0.5 - q.x) ** 2 + (y + 0.5 - q.y) ** 2 <= r * r) m[y * W + x] = 1;
+              }
+            }
+          }
+        }
+        // Morphological closing with a disc of radius c, via distance maps.
+        const c = p.bridge * d;
+        const inv = new Uint8Array(N);
+        for (let i = 0; i < N; i++) inv[i] = 1 - m[i];
+        const out = edt(inv, W, H);
+        const dil = new Uint8Array(N);
+        for (let i = 0; i < N; i++) dil[i] = m[i] || out[i] <= c ? 1 : 0;
+        const inn = edt(dil, W, H);
+        for (let i = 0; i < N; i++) if (inn[i] > c) m[i] = 1;
+        m = fillHoles(m, W, H);
+
+        // Number the organoids with enough nuclei in reading order.
+        const { lab, sizes } = components(m, W, H);
+        const count = new Int32Array(sizes.length);
+        for (const q of nuclei) count[lab[at(q)]]++;
+        const box = sizes.map(() => ({ x0: W, y0: H, x1: -1, y1: -1, area: 0 }));
+        for (let i = 0; i < N; i++) {
+          const l = lab[i];
+          if (!l || count[l] < p.minNuclei) continue;
+          const b = box[l];
+          const x = i % W;
+          const y = (i / W) | 0;
+          b.area++;
+          if (x < b.x0) b.x0 = x;
+          if (x > b.x1) b.x1 = x;
+          if (y < b.y0) b.y0 = y;
+          if (y > b.y1) b.y1 = y;
+        }
+        const rowH = Math.max(W, H) / 12;
+        const order = [];
+        box.forEach((b, l) => l && b.area && order.push(l));
+        const cy = (l) => (box[l].y0 + box[l].y1) / 2;
+        const cx = (l) => (box[l].x0 + box[l].x1) / 2;
+        order.sort((a, b) => Math.round(cy(a) / rowH) - Math.round(cy(b) / rowH) || cx(a) - cx(b));
+        const remap = new Int32Array(sizes.length);
+        order.forEach((l, k) => (remap[l] = k + 1));
+        const labels = new Int32Array(N);
+        for (let i = 0; i < N; i++) labels[i] = remap[lab[i]];
+        const n = order.length;
+        const dist = edt(labels, W, H);
+        const { lengths, paths } = contours(labels, W, H, n);
+        const organoids = order.map((l, k) => ({
+          id: k + 1,
+          ...box[l],
+          length: lengths[k + 1],
+          path: paths?.[k + 1],
+        }));
+        return { labels, dist, n, organoids };
+      }
+
+      // Perimeter or interior for each nucleus, and counts per organoid.
+      function classify(F, nuclei, org, d, p) {
+        const { W } = F;
+        const { labels, dist } = org;
+        const organoids = org.organoids.map((o) => ({ ...o, nuclei: 0, perim: 0 }));
+        for (const q of nuclei) {
+          const i = Math.floor(q.y) * W + Math.floor(q.x);
+          q.org = labels[i];
+          q.auto = q.org ? dist[i] <= p.depth * d : false;
+          q.perim = q.org ? (q.force ?? q.auto) : false;
+          if (!q.org) continue;
+          const o = organoids[q.org - 1];
+          o.nuclei++;
+          if (q.perim) o.perim++;
+        }
+        // Number each organoid's nuclei: perimeter first, clockwise from 12
+        // o'clock, so the last perimeter number is the perimeter count, then
+        // interior in reading order. Nuclei added by hand go at the end of
+        // their list in the order they were added, so adding one doesn't
+        // renumber the rest.
+        for (const o of organoids) {
+          const cx = (o.x0 + o.x1) / 2;
+          const cy = (o.y0 + o.y1) / 2;
+          const turn = (q) => (Math.atan2(q.x - cx, cy - q.y) + 2 * Math.PI) % (2 * Math.PI);
+          const read = (q) => Math.round(q.y / d) * 1e6 + q.x;
+          const mine = nuclei.filter((q) => q.org === o.id);
+          const list = (perim, key) =>
+            mine
+              .filter((q) => q.perim === perim)
+              .sort((a, b) => !!a.added - !!b.added || (a.added ? a.ai - b.ai : key(a) - key(b)));
+          [...list(true, turn), ...list(false, read)].forEach((q, k) => (q.num = k + 1));
+        }
+        for (const q of nuclei) if (!q.org) q.num = null;
+        // Each group is numbered in the order its nuclei were clicked. Groups
+        // are counted on their own and don't change the organoid counts.
+        const groups = [];
+        for (const q of nuclei) {
+          for (const x of q.groups || []) {
+            (groups[x.g - 1] ||= { id: x.g, nuclei: 0, perim: 0, inner: 0, list: [] }).list.push(x);
+            x.q = q;
+          }
+        }
+        for (const grp of groups) {
+          if (!grp) continue;
+          grp.list.sort((a, b) => a.m - b.m).forEach((x, k) => (x.num = k + 1));
+          grp.nuclei = grp.list.length;
+          grp.perim = grp.list.filter((x) => x.q.org && x.q.perim).length;
+          grp.inner = grp.list.filter((x) => x.q.org && !x.q.perim).length;
+          for (const x of grp.list) delete x.q;
+          delete grp.list;
+        }
+        return { nuclei, organoids, groups };
+      }
+
+      // ---- Image helpers ---------------------------------------------------
+
+      // Separable box blur with clamped edges; O(1) per pixel for any radius.
+      function boxBlur(src, W, H, r) {
+        const tmp = new Float32Array(W * H);
+        const out = new Float32Array(W * H);
+        const k = 2 * r + 1;
+        for (let y = 0; y < H; y++) {
+          const row = y * W;
+          let acc = 0;
+          for (let x = -r; x <= r; x++) acc += src[row + Math.min(W - 1, Math.max(0, x))];
+          for (let x = 0; x < W; x++) {
+            tmp[row + x] = acc / k;
+            acc += src[row + Math.min(W - 1, x + r + 1)] - src[row + Math.max(0, x - r)];
+          }
+        }
+        for (let x = 0; x < W; x++) {
+          let acc = 0;
+          for (let y = -r; y <= r; y++) acc += tmp[Math.min(H - 1, Math.max(0, y)) * W + x];
+          for (let y = 0; y < H; y++) {
+            out[y * W + x] = acc / k;
+            acc += tmp[Math.min(H - 1, y + r + 1) * W + x] - tmp[Math.max(0, y - r) * W + x];
+          }
+        }
+        return out;
+      }
+
+      // Gaussian blur with standard deviation s, as three box blurs.
+      function gauss(src, W, H, s) {
+        if (s < 0.5) return Float32Array.from(src);
+        const wIdeal = Math.sqrt(4 * s * s + 1);
+        let wl = Math.floor(wIdeal);
+        if (wl % 2 === 0) wl--;
+        const mk = Math.round((12 * s * s - 3 * wl * wl - 12 * wl - 9) / (-4 * wl - 4));
+        let out = src;
+        for (let k = 0; k < 3; k++) out = boxBlur(out, W, H, ((k < mk ? wl : wl + 2) - 1) / 2);
+        return out;
+      }
+
+      function quantile(a, q) {
+        const step = Math.max(1, Math.floor(a.length / 100000));
+        const s = [];
+        for (let i = 0; i < a.length; i += step) s.push(a[i]);
+        s.sort((x, y) => x - y);
+        return s[Math.min(s.length - 1, Math.floor(q * s.length))];
+      }
+
+      // 4-connected components: { lab, sizes } with sizes[0] unused.
+      function components(m, W, H) {
+        const N = W * H;
+        const lab = new Int32Array(N);
+        const stack = new Int32Array(N);
+        const sizes = [0];
+        let count = 0;
+        for (let s = 0; s < N; s++) {
+          if (!m[s] || lab[s]) continue;
+          count++;
+          let sp = 0;
+          let size = 0;
+          stack[sp++] = s;
+          lab[s] = count;
+          while (sp) {
+            const q = stack[--sp];
+            size++;
+            const x = q % W;
+            if (x > 0 && m[q - 1] && !lab[q - 1]) (lab[q - 1] = count), (stack[sp++] = q - 1);
+            if (x < W - 1 && m[q + 1] && !lab[q + 1]) (lab[q + 1] = count), (stack[sp++] = q + 1);
+            if (q >= W && m[q - W] && !lab[q - W]) (lab[q - W] = count), (stack[sp++] = q - W);
+            if (q < N - W && m[q + W] && !lab[q + W]) (lab[q + W] = count), (stack[sp++] = q + W);
+          }
+          sizes.push(size);
+        }
+        return { lab, sizes };
+      }
+
+      // Fill every hole that doesn't reach the edge of the image.
+      function fillHoles(m, W, H) {
+        const inv = new Uint8Array(m.length);
+        for (let i = 0; i < m.length; i++) inv[i] = m[i] ? 0 : 1;
+        const { lab, sizes } = components(inv, W, H);
+        const edge = new Uint8Array(sizes.length);
+        for (let x = 0; x < W; x++) edge[lab[x]] = edge[lab[(H - 1) * W + x]] = 1;
+        for (let y = 0; y < H; y++) edge[lab[y * W]] = edge[lab[y * W + W - 1]] = 1;
+        const out = new Uint8Array(m);
+        for (let i = 0; i < m.length; i++) if (lab[i] && !edge[lab[i]]) out[i] = 1;
+        return out;
+      }
+
+      // Exact Euclidean distance from each set pixel to the nearest unset one
+      // (Felzenszwalb & Huttenlocher).
+      function edt(m, W, H) {
+        const INF = 1e20;
+        const n = Math.max(W, H);
+        const f = new Float64Array(n);
+        const d = new Float64Array(n);
+        const v = new Int32Array(n);
+        const z = new Float64Array(n + 1);
+        const g = new Float64Array(W * H);
+        for (let i = 0; i < W * H; i++) g[i] = m[i] ? INF : 0;
+        function pass(len) {
+          let k = 0;
+          v[0] = 0;
+          z[0] = -INF;
+          z[1] = INF;
+          for (let q = 1; q < len; q++) {
+            let s;
+            for (;;) {
+              const r = v[k];
+              s = (f[q] + q * q - (f[r] + r * r)) / (2 * q - 2 * r);
+              if (s <= z[k]) k--;
+              else break;
+            }
+            k++;
+            v[k] = q;
+            z[k] = s;
+            z[k + 1] = INF;
+          }
+          k = 0;
+          for (let q = 0; q < len; q++) {
+            while (z[k + 1] < q) k++;
+            d[q] = (q - v[k]) * (q - v[k]) + f[v[k]];
+          }
+        }
+        for (let x = 0; x < W; x++) {
+          for (let y = 0; y < H; y++) f[y] = g[y * W + x];
+          pass(H);
+          for (let y = 0; y < H; y++) g[y * W + x] = d[y];
+        }
+        const out = new Float32Array(W * H);
+        for (let y = 0; y < H; y++) {
+          for (let x = 0; x < W; x++) f[x] = g[y * W + x];
+          pass(W);
+          for (let x = 0; x < W; x++) out[y * W + x] = Math.sqrt(d[x]);
+        }
+        return out;
+      }
+
+      // Marching squares through pixel centres: each label's border with 45°
+      // corners instead of a staircase. Cell corners are tl, tr, br, bl
+      // (bits 8, 4, 2, 1); each case lists the pairs of cell edges (0 top,
+      // 1 right, 2 bottom, 3 left) to join.
+      const MARCH = [
+        [],
+        [3, 2],
+        [2, 1],
+        [3, 1],
+        [0, 1],
+        [3, 0, 2, 1],
+        [0, 2],
+        [3, 0],
+        [3, 0],
+        [0, 2],
+        [0, 1, 3, 2],
+        [0, 1],
+        [3, 1],
+        [2, 1],
+        [3, 2],
+        [],
+      ];
+
+      // Outline length and (in a browser) a Path2D for each label 1..n.
+      function contours(labels, W, H, n) {
+        const lengths = new Float64Array(n + 1);
+        const paths =
+          typeof Path2D === 'function' ? Array.from({ length: n + 1 }, () => new Path2D()) : null;
+        const MID = [
+          [1, 0.5],
+          [1.5, 1],
+          [1, 1.5],
+          [0.5, 1],
+        ];
+        const at = (x, y) => (x >= 0 && y >= 0 && x < W && y < H ? labels[y * W + x] : 0);
+        for (let y = -1; y < H; y++) {
+          for (let x = -1; x < W; x++) {
+            const a = at(x, y);
+            const b = at(x + 1, y);
+            const c = at(x + 1, y + 1);
+            const d = at(x, y + 1);
+            if (a === b && b === c && c === d) continue;
+            for (const l of new Set([a, b, c, d])) {
+              if (!l) continue;
+              const k = 8 * (a === l) + 4 * (b === l) + 2 * (c === l) + (d === l);
+              const segs = MARCH[k];
+              for (let j = 0; j < segs.length; j += 2) {
+                const [p, q] = [MID[segs[j]], MID[segs[j + 1]]];
+                lengths[l] += Math.hypot(p[0] - q[0], p[1] - q[1]);
+                if (paths) {
+                  paths[l].moveTo(x + p[0], y + p[1]);
+                  paths[l].lineTo(x + q[0], y + q[1]);
+                }
+              }
+            }
+          }
+        }
+        return { lengths, paths };
+      }
+      // ==== analysis end =====================================================
+
+      // ======================================================================
+      // UI
+      // ======================================================================
+
+      const COLOUR = { perim: '#ff3d9a', inner: '#22c3ee', out: '#9ca3af', group: '#ffd400' };
+
+      const $ = (id) => document.getElementById(id);
+      const dropEl = $('drop');
+      const fileInput = $('file');
+      const fileNameEl = $('file-name');
+      const errorEl = $('error');
+      const canvas = $('canvas');
+      const ctx = canvas.getContext('2d');
+      const tipEl = $('tip');
+      const busyEl = $('busy');
+      const rowsEl = $('rows');
+
+      // Every image is a record; `cur` is the one on screen. Only it keeps
+      // the large per-pixel arrays (F, org.labels, org.dist).
+      // A per-viewer on/off preference, or `def` when none is stored.
+      function remembered(key, def) {
+        try {
+          const v = localStorage.getItem('dapi-counter:' + key);
+          return v == null ? def : v === '1';
+        } catch {
+          return def;
+        }
+      }
+
+      const images = [];
+      let cur = null;
+      const ui = {
+        view: 'marks',
+        zoom: true,
+        numbers: remembered('numbers', true), // number each nucleus
+        peek: false, // right button held: show just the image
+        hover: null, // { nucleus } or { organoid }
+        box: null,
+        px: 1, // one CSS pixel in working-image pixels
+        grouping: false, // "new group" is on: clicks put nuclei in a group
+        group: null, // index of the group being added to, once it has a nucleus
+      };
+
+      const noEdits = () => ({ added: [], removed: [], forced: [], groups: [] });
+      const editCount = (r) =>
+        r.edits.added.length +
+        r.edits.removed.length +
+        r.edits.forced.length +
+        r.edits.groups.reduce((s, g) => s + g.members.length, 0);
+
+      // ---- Tuning knobs ----------------------------------------------------
+
+      // Length in working px, as µm or original px.
+      function fmtLen(v, t = cur, digits = 1) {
+        const k = t ? t.origW / t.work.width : 1;
+        const um = umPerPx(t);
+        return um ? `${(v * k * um).toFixed(digits)} µm` : `${Math.round(v * k)} px`;
+      }
+
+      const KNOBS = [
+        {
+          key: 'size',
+          label: 'nucleus size',
+          why: 'typical nucleus diameter; detection looks for blobs this big',
+          min: 4,
+          max: 80,
+          step: 0.5,
+          stage: 'detect',
+          fmt: (v) => fmtLen(v),
+          auto: () => cur?.F?.autoSize ?? cur?.autoSize,
+        },
+        {
+          key: 'contrast',
+          label: 'contrast',
+          why: 'lower picks up dimmer nuclei',
+          min: 1,
+          max: 80,
+          step: 0.5,
+          stage: 'detect',
+          fmt: (v) => v.toFixed(1),
+          auto: () => cur?.det?.autoContrast,
+        },
+        {
+          key: 'spacing',
+          label: 'closest nuclei',
+          why: 'how close two nuclei can be, × the size; lower splits clumps more',
+          min: 0.2,
+          max: 1,
+          step: 0.02,
+          stage: 'detect',
+          fmt: (v) => v.toFixed(2) + '×',
+        },
+        {
+          key: 'speck',
+          label: 'smallest nucleus',
+          why: 'blobs smaller than this share of a nucleus are debris',
+          min: 0,
+          max: 0.8,
+          step: 0.02,
+          stage: 'detect',
+          fmt: (v) => Math.round(v * 100) + '%',
+        },
+        {
+          key: 'bridge',
+          label: 'outline gap bridging',
+          why: 'widest gap between nuclei the organoid outline closes over',
+          min: 0.3,
+          max: 6,
+          step: 0.1,
+          stage: 'outline',
+          fmt: (v) => fmtLen(2 * v * nucleusSize()),
+        },
+        {
+          key: 'depth',
+          label: 'perimeter depth',
+          why: 'nuclei centred this close to the outline count as perimeter',
+          min: 0.2,
+          max: 4,
+          step: 0.05,
+          stage: 'classify',
+          fmt: (v) => fmtLen(v * nucleusSize()),
+        },
+        {
+          key: 'minNuclei',
+          label: 'smallest organoid',
+          why: 'clusters with fewer nuclei are left out',
+          min: 1,
+          max: 60,
+          step: 1,
+          stage: 'outline',
+          fmt: (v) => `${v} nuclei`,
+        },
+      ];
+
+      function nucleusSize(t = cur) {
+        return t?.det?.d ?? t?.params.size ?? t?.autoSize ?? 12;
+      }
+
+      function buildKnobs() {
+        const host = $('knobs');
+        for (const k of KNOBS) {
+          const row = document.createElement('div');
+          row.className = 'knob';
+          const id = 'k-' + k.key;
+          row.innerHTML =
+            `<label for="${id}">${k.label}<span class="why">${k.why}</span></label>` +
+            `<input type="range" id="${id}" min="${k.min}" max="${k.max}" step="${k.step}" />` +
+            `<output class="mono" for="${id}"></output>` +
+            `<button type="button" title="Back to the default">reset</button>`;
+          k.input = row.querySelector('input');
+          k.out = row.querySelector('output');
+          k.input.addEventListener('input', () => {
+            if (!cur) return;
+            cur.params[k.key] = +k.input.value;
+            syncKnob(k);
+            schedule(k.stage);
+          });
+          row.querySelector('button').addEventListener('click', () => {
+            if (!cur) return;
+            cur.params[k.key] = DEFAULTS[k.key];
+            syncKnob(k);
+            schedule(k.stage);
+          });
+          host.appendChild(row);
+        }
+      }
+
+      function syncKnob(k) {
+        if (!cur) return;
+        const set = cur.params[k.key];
+        const v = set == null && k.auto ? k.auto() : set;
+        if (v == null) return;
+        k.input.value = v;
+        k.out.textContent = k.fmt(v) + (set == null ? ' auto' : '');
+      }
+
+      const syncKnobs = () => KNOBS.forEach(syncKnob);
+
+      // ---- Running the analysis -------------------------------------------
+
+      const RANK = { classify: 0, outline: 1, detect: 2, all: 3 };
+      let pending = null;
+      let timer = null;
+
+      // Re-run the image on screen from `stage` on, once the sliders settle.
+      function schedule(stage) {
+        if (pending == null || RANK[stage] > RANK[pending]) pending = stage;
+        busyEl.hidden = false;
+        clearTimeout(timer);
+        // Two frames: let the "analysing…" badge paint before blocking.
+        timer = setTimeout(() => requestAnimationFrame(() => setTimeout(runPending, 0)), 120);
+      }
+
+      function runPending() {
+        const stage = pending;
+        pending = null;
+        if (!cur?.work) return;
+        try {
+          analyse(cur, stage);
+        } catch (err) {
+          console.error(err);
+          errorEl.textContent = 'Analysis failed: ' + err.message;
+          busyEl.hidden = true;
+          return;
+        }
+        refresh();
+        busyEl.hidden = !pending;
+        queueBackground();
+      }
+
+      // Bring record `t` up to date from `stage` on.
+      function analyse(t, stage) {
+        const r = RANK[stage];
+        if (r >= RANK.all || !t.F) {
+          const { width: W, height: H } = t.work;
+          const rgba = t.work.getContext('2d').getImageData(0, 0, W, H).data;
+          t.F = computeFeatures(rgba, W, H, t.autoSize);
+          t.autoSize = t.F.autoSize;
+        }
+        if (r >= RANK.detect || !t.det) t.det = detectNuclei(t.F, t.params);
+        const d = t.det.d;
+        const nuclei = applyEdits(t.det.pts, t.edits, 0.5 * d);
+        if (r >= RANK.outline || !t.org) t.org = findOrganoids(t.F, nuclei, d, t.params);
+        t.result = classify(t.F, nuclei, t.org, d, t.params);
+        t.status = 'done';
+      }
+
+      // After any change on the image on screen.
+      function refresh() {
+        render();
+        syncKnobs();
+        syncEditButtons();
+        renderTable();
+        renderGroups();
+        renderSummary();
+        renderImageList();
+        saveSession();
+      }
+
+      // ---- Drawing ---------------------------------------------------------
+
+      // The part of the working image on screen: everything, or a crop around
+      // the organoids.
+      function viewBox(t = cur) {
+        const { width: W, height: H } = t.work;
+        const all = { x: 0, y: 0, w: W, h: H };
+        const list = t.result?.organoids || [];
+        if (!ui.zoom || !list.length) return all;
+        const pad = Math.round(Math.max(W, H) / 30);
+        const x0 = Math.max(0, Math.min(...list.map((o) => o.x0)) - pad);
+        const y0 = Math.max(0, Math.min(...list.map((o) => o.y0)) - pad);
+        const x1 = Math.min(W, Math.max(...list.map((o) => o.x1)) + 1 + pad);
+        const y1 = Math.min(H, Math.max(...list.map((o) => o.y1)) + 1 + pad);
+        // Not worth zooming in for a crop that is most of the image.
+        if ((x1 - x0) * (y1 - y0) > 0.7 * W * H) return all;
+        return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+      }
+
+      function render() {
+        if (!cur?.work) return;
+        const box = (ui.box = viewBox());
+        // Size the canvas to the screen so a close crop stays sharp: the
+        // original image is drawn at full resolution and the marks as vectors.
+        const dpr = window.devicePixelRatio || 1;
+        const cw = Math.max(1, Math.round($('canvas-wrap').clientWidth * dpr));
+        const chh = Math.max(1, Math.round((cw * box.h) / box.w));
+        if (canvas.width !== cw || canvas.height !== chh) {
+          canvas.width = cw;
+          canvas.height = chh;
+        }
+        const s = cw / box.w;
+        ui.px = dpr / s;
+        ctx.setTransform(s, 0, 0, s, -box.x * s, -box.y * s);
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(cur.img || cur.work, 0, 0, cur.work.width, cur.work.height);
+        if (cur.result && !ui.peek && ui.view === 'marks') drawMarks(ctx, cur, ui.px);
+        const um = umPerPx(cur);
+        if (um) {
+          const umPerDevPx = (um * cur.origW * box.w) / (cur.work.width * cw);
+          drawScaleBar(ctx, cw, chh, umPerDevPx, 12 * dpr);
+        }
+      }
+
+      // A dot per nucleus, on a context in working-image coordinates where
+      // one CSS pixel is `px`.
+      function drawMarks(g, t, px, numbers = ui.numbers) {
+        const { nuclei } = t.result;
+        g.lineJoin = 'round';
+        g.lineCap = 'round';
+        const r = Math.max(2.5 * px, 0.2 * t.det.d);
+        for (const q of nuclei) {
+          const off = !q.org || t.excluded.has(q.org);
+          g.beginPath();
+          g.arc(q.x, q.y, r, 0, 2 * Math.PI);
+          if (!q.org) {
+            g.lineWidth = 1.5 * px;
+            g.strokeStyle = COLOUR.out;
+            g.stroke();
+          } else {
+            g.fillStyle = off ? '#888' : q.perim ? COLOUR.perim : COLOUR.inner;
+            g.fill();
+            g.lineWidth = px;
+            g.strokeStyle = 'rgba(0,0,0,0.7)';
+            g.stroke();
+          }
+          // A yellow ring marks a nucleus in any group, and a white one
+          // outside it a hand edit.
+          let ring = r;
+          if (q.groups?.length) {
+            ring += 2 * px;
+            g.beginPath();
+            g.arc(q.x, q.y, ring, 0, 2 * Math.PI);
+            g.lineWidth = 3.5 * px;
+            g.strokeStyle = 'rgba(0,0,0,0.7)';
+            g.stroke();
+            g.lineWidth = 2 * px;
+            g.strokeStyle = COLOUR.group;
+            g.stroke();
+          }
+          if (q.added || q.force != null) {
+            ring += 2.2 * px;
+            g.beginPath();
+            g.arc(q.x, q.y, ring, 0, 2 * Math.PI);
+            g.lineWidth = 1.2 * px;
+            g.strokeStyle = '#fff';
+            g.stroke();
+          }
+        }
+        if (numbers) {
+          const size = Math.max(10 * px, 0.5 * t.det.d);
+          g.font = `600 ${size}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+          g.textAlign = 'left';
+          g.textBaseline = 'middle';
+          g.lineJoin = 'round';
+          g.lineWidth = 3 * px;
+          g.strokeStyle = 'rgba(0,0,0,0.9)';
+          // The nucleus's own number in its colour, then its number in each
+          // of its groups in yellow, in group order.
+          const gap = 0.3 * size;
+          for (const q of nuclei) {
+            const off = t.excluded.has(q.org);
+            const parts = [];
+            if (q.num) parts.push([q.num, off ? '#aaa' : q.perim ? '#ff8cc4' : '#8ee3f7']);
+            for (const x of q.groups || []) parts.push([x.num, '#ffe45c']);
+            if (!parts.length) continue;
+            let x = q.x + r + (q.groups?.length ? 3.5 : 1.5) * px;
+            const y = q.y - 0.6 * r;
+            for (const [text, colour] of parts) {
+              g.fillStyle = colour;
+              g.strokeText(text, x, y);
+              g.fillText(text, x, y);
+              x += g.measureText(String(text)).width + gap;
+            }
+          }
+        }
+      }
+
+      // A scale bar in the bottom right corner of a `w` × `h` drawing, about a
+      // fifth of its width and rounded to 1, 2 or 5 × a power of ten µm.
+      function drawScaleBar(g, w, h, umPerOutPx, size) {
+        const target = (w / 5) * umPerOutPx;
+        const pow = 10 ** Math.floor(Math.log10(target));
+        const um = [5, 2, 1].map((k) => k * pow).find((v) => v <= target);
+        const len = um / umPerOutPx;
+        const thick = Math.max(2, Math.round(size / 3));
+        const pad = Math.round(size * 1.2);
+        const x1 = w - pad;
+        const x0 = x1 - len;
+        const y = h - pad - thick;
+        const label = um >= 1000 ? `${+(um / 1000).toPrecision(3)} mm` : `${+um.toPrecision(3)} µm`;
+        g.save();
+        g.setTransform(1, 0, 0, 1, 0, 0);
+        g.fillStyle = 'rgba(0,0,0,0.85)';
+        const halo = Math.max(1, size / 8);
+        g.fillRect(x0 - halo, y - halo, len + 2 * halo, thick + 2 * halo);
+        g.fillStyle = '#fff';
+        g.fillRect(x0, y, len, thick);
+        g.font = `600 ${size}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+        g.textAlign = 'center';
+        g.textBaseline = 'bottom';
+        g.lineJoin = 'round';
+        g.lineWidth = Math.max(2, size / 4);
+        g.strokeStyle = 'rgba(0,0,0,0.85)';
+        g.strokeText(label, (x0 + x1) / 2, y - size * 0.3);
+        g.fillText(label, (x0 + x1) / 2, y - size * 0.3);
+        g.restore();
+      }
+
+      // The full image with its marks, at the original resolution.
+      $('save-image').addEventListener('click', () => {
+        if (!cur?.result) return;
+        const { width: W, height: H } = cur.work;
+        const c = document.createElement('canvas');
+        c.width = cur.origW;
+        c.height = cur.origH;
+        const g = c.getContext('2d');
+        const k = cur.origW / W;
+        g.setTransform(k, 0, 0, cur.origH / H, 0, 0);
+        g.drawImage(cur.img || cur.work, 0, 0, W, H);
+        drawMarks(g, cur, Math.max(W, H) / 1000);
+        const um = umPerPx(cur);
+        if (um) drawScaleBar(g, c.width, c.height, um, Math.max(14, Math.round(c.width / 60)));
+        c.toBlob((b) => save(b, cur.name.replace(/\.[^.]+$/, '') + '-dapi.png'), 'image/png');
+      });
+
+      // ---- Table and summary ----------------------------------------------
+
+      // µm across one original-image pixel, or null when the pixel size is unknown.
+      function umPerPx(t = cur) {
+        return t?.umPerPx || metaPixel(t) || null;
+      }
+
+      function included(t = cur) {
+        return t.result.organoids.filter((o) => !t.excluded.has(o.id));
+      }
+
+      // Pooled over the included organoids; `length` in working px.
+      function totals(t) {
+        const list = included(t);
+        const sum = (f) => list.reduce((s, o) => s + f(o), 0);
+        const nuclei = sum((o) => o.nuclei);
+        const perim = sum((o) => o.perim);
+        const length = sum((o) => o.length);
+        const outside = t.result.nuclei.filter((q) => !q.org).length;
+        return { count: list.length, nuclei, perim, length, outside };
+      }
+
+      // Perimeter nuclei per 100 µm of outline (or per 100 px without a pixel size).
+      function density(perim, length, t = cur) {
+        const len = length * (t.origW / t.work.width) * (umPerPx(t) || 1);
+        return len ? (100 * perim) / len : null;
+      }
+
+      const pct = (a, b) => (b ? ((100 * a) / b).toFixed(1) + '%' : '–');
+
+      function renderTable() {
+        const { organoids } = cur.result;
+        const unit = umPerPx() ? 'µm' : 'px';
+        $('th-length').textContent = `perimeter ${unit}`;
+        $('th-density').textContent = `per 100 ${unit}`;
+        rowsEl.textContent = '';
+        for (const o of organoids) {
+          const tr = document.createElement('tr');
+          tr.className =
+            (cur.excluded.has(o.id) ? 'excluded' : '') +
+            (ui.hover?.organoid === o.id ? ' hot' : '');
+          const dens = density(o.perim, o.length);
+          const cells = [
+            o.id,
+            o.perim,
+            o.nuclei - o.perim,
+            pct(o.perim, o.nuclei),
+            fmtLen(o.length, cur, 0).replace(/ (µm|px)$/, ''),
+            dens == null ? '–' : dens.toFixed(1),
+          ];
+          for (const v of cells) {
+            const td = document.createElement('td');
+            td.textContent = v;
+            tr.appendChild(td);
+          }
+          tr.addEventListener('click', () => toggleExcluded(o.id));
+          tr.addEventListener('mouseenter', () => setHover({ organoid: o.id }));
+          tr.addEventListener('mouseleave', () => setHover(null));
+          rowsEl.appendChild(tr);
+        }
+        const tot = totals(cur);
+        const notes = [];
+        if (!organoids.length) notes.push('No organoids found; try lowering "smallest organoid".');
+        else notes.push('Click a row to leave that organoid out.');
+        if (tot.outside)
+          notes.push(`${tot.outside} nuclei outside any organoid aren’t counted (grey rings).`);
+        $('table-note').textContent = notes.join(' ');
+      }
+
+      function renderSummary() {
+        const t = totals(cur);
+        const unit = umPerPx() ? 'µm' : 'px';
+        $('s-perim').textContent = t.perim;
+        $('s-perim-sub').textContent = `${pct(t.perim, t.nuclei)} of nuclei`;
+        $('s-nuclei').textContent = t.nuclei;
+        $('s-nuclei-sub').textContent =
+          `${t.nuclei - t.perim} interior · ${t.count} organoid${t.count === 1 ? '' : 's'}`;
+        $('s-length').textContent = t.count ? fmtLen(t.length, cur, 0) : '–';
+        $('s-length-sub').textContent = t.count > 1 ? 'all included organoids' : 'organoid outline';
+        const dens = density(t.perim, t.length);
+        $('s-density').textContent = dens == null ? '–' : dens.toFixed(1);
+        $('s-density-sub').textContent = `perimeter nuclei per 100 ${unit}`;
+      }
+
+      function renderGroups() {
+        const G = cur.edits.groups;
+        const res = cur.result.groups;
+        $('groups-section').hidden = !G.length;
+        const host = $('group-rows');
+        host.textContent = '';
+        G.forEach((_, gi) => {
+          const g = res[gi] || { nuclei: 0, perim: 0, inner: 0 };
+          const tr = document.createElement('tr');
+          const adding = ui.grouping && ui.group === gi;
+          tr.className = adding ? 'active' : '';
+          const cells = [
+            `group ${gi + 1}` + (adding ? ' · adding' : ''),
+            g.nuclei,
+            g.perim,
+            g.inner,
+            g.nuclei - g.perim - g.inner,
+          ];
+          for (const v of cells) {
+            const td = document.createElement('td');
+            td.textContent = v;
+            tr.appendChild(td);
+          }
+          const td = document.createElement('td');
+          const del = document.createElement('button');
+          del.type = 'button';
+          del.textContent = 'delete';
+          del.title = 'Delete this group; its nuclei stay where they are';
+          del.addEventListener('click', () => deleteGroup(gi));
+          td.appendChild(del);
+          tr.appendChild(td);
+          host.appendChild(tr);
+        });
+      }
+
+      function deleteGroup(gi) {
+        cur.undo.push(JSON.stringify(cur.edits));
+        cur.edits.groups.splice(gi, 1);
+        if (ui.group === gi) ui.group = null;
+        else if (ui.group > gi) ui.group--;
+        analyse(cur, 'classify');
+        refresh();
+      }
+
+      function toggleExcluded(id) {
+        if (cur.excluded.has(id)) cur.excluded.delete(id);
+        else cur.excluded.add(id);
+        refresh();
+      }
+
+      $('include-all').addEventListener('click', () => {
+        if (!cur?.result) return;
+        cur.excluded.clear();
+        refresh();
+      });
+
+      function setHover(h) {
+        const same =
+          (h?.nucleus ?? null) === (ui.hover?.nucleus ?? null) &&
+          (h?.organoid ?? null) === (ui.hover?.organoid ?? null);
+        if (same) return;
+        ui.hover = h;
+        for (const [k, tr] of [...rowsEl.children].entries()) {
+          tr.classList.toggle('hot', h?.organoid === k + 1);
+        }
+      }
+
+      // ---- Canvas interaction and editing ----------------------------------
+
+      function pointAt(e) {
+        const r = canvas.getBoundingClientRect();
+        const b = ui.box;
+        return {
+          x: b.x + ((e.clientX - r.left) / r.width) * b.w,
+          y: b.y + ((e.clientY - r.top) / r.height) * b.h,
+        };
+      }
+
+      function nucleusAt(p) {
+        const tol = Math.max(0.5 * cur.det.d, 8 * ui.px);
+        let best = null;
+        let bd = tol * tol;
+        for (const q of cur.result.nuclei) {
+          const dd = (q.x - p.x) ** 2 + (q.y - p.y) ** 2;
+          if (dd < bd) (bd = dd), (best = q);
+        }
+        return best;
+      }
+
+      function organoidAt(p) {
+        const { width: W, height: H } = cur.work;
+        const x = Math.floor(p.x);
+        const y = Math.floor(p.y);
+        if (x < 0 || y < 0 || x >= W || y >= H) return 0;
+        return cur.org.labels[y * W + x];
+      }
+
+      const editable = () => cur?.result && !ui.peek && ui.view === 'marks';
+
+      canvas.addEventListener('mousemove', (e) => {
+        if (!editable()) return;
+        const p = pointAt(e);
+        const q = nucleusAt(p);
+        const l = q ? 0 : organoidAt(p);
+        setHover(q ? { nucleus: q, organoid: q.org } : l ? { organoid: l } : null);
+        let text = '';
+        if (q) {
+          const where = !q.org ? 'outside any organoid' : q.perim ? 'perimeter' : 'interior';
+          const how = q.added ? 'added by hand' : q.force != null ? 'set by hand' : '';
+          text = `nucleus${q.num ? ' ' + q.num : ''} · ${where}` + (how ? ` · ${how}` : '');
+          if (q.org) text += ` · organoid ${q.org}`;
+          for (const x of q.groups || []) text += ` · group ${x.g} #${x.num}`;
+        } else if (l) {
+          const o = cur.result.organoids[l - 1];
+          text = `organoid ${l} · ${o.perim} of ${o.nuclei} nuclei on the perimeter`;
+        }
+        tipEl.hidden = !text;
+        tipEl.textContent = text;
+        const wrap = $('canvas-wrap').getBoundingClientRect();
+        tipEl.style.left = e.clientX - wrap.left + 'px';
+        tipEl.style.top = e.clientY - wrap.top + 'px';
+      });
+
+      canvas.addEventListener('mouseleave', () => {
+        tipEl.hidden = true;
+        setHover(null);
+      });
+
+      canvas.addEventListener('click', (e) => {
+        if (!editable()) return;
+        const p = pointAt(e);
+        const q = nucleusAt(p);
+        // Control-click is the Mac's right click.
+        if (q && (e.shiftKey || e.altKey || e.ctrlKey)) return rightClick(q);
+        const { width: W, height: H } = cur.work;
+        if (!q && (p.x < 0 || p.y < 0 || p.x >= W || p.y >= H)) return;
+        const before = JSON.stringify(cur.edits);
+        let stage = 'outline';
+        if (ui.grouping) {
+          // Put the nucleus in the group being made (it stays in any others),
+          // or take it back out if it's already there.
+          const G = cur.edits.groups;
+          if (ui.group == null || !G[ui.group]) {
+            G.push({ members: [] });
+            ui.group = G.length - 1;
+          }
+          const members = G[ui.group].members;
+          const here = q?.groups.find((x) => x.g === ui.group + 1);
+          if (here) members.splice(here.m, 1);
+          else if (q) members.push({ x: q.x, y: q.y });
+          else {
+            cur.edits.added.push({ x: p.x, y: p.y });
+            members.push({ x: p.x, y: p.y });
+          }
+          if (q) stage = 'classify';
+        } else if (q) {
+          if (!q.org) return;
+          const want = !q.perim;
+          const v = want === q.auto ? undefined : want;
+          stage = 'classify';
+          if (q.added) cur.edits.added[q.ai].p = v;
+          else if (q.fi != null) {
+            if (v === undefined) cur.edits.forced.splice(q.fi, 1);
+            else cur.edits.forced[q.fi].p = v;
+          } else cur.edits.forced.push({ x: q.x, y: q.y, p: v });
+        } else {
+          cur.edits.added.push({ x: p.x, y: p.y });
+        }
+        cur.undo.push(before);
+        analyse(cur, stage);
+        tipEl.hidden = true;
+        ui.hover = null;
+        refresh();
+      });
+
+      function removeNucleus(q) {
+        cur.undo.push(JSON.stringify(cur.edits));
+        for (const x of q.groups) cur.edits.groups[x.g - 1].members.splice(x.m, 1);
+        if (q.added) cur.edits.added.splice(q.ai, 1);
+        else {
+          if (q.fi != null) cur.edits.forced.splice(q.fi, 1);
+          cur.edits.removed.push({ x: q.x, y: q.y });
+        }
+        analyse(cur, 'outline');
+        tipEl.hidden = true;
+        ui.hover = null;
+        refresh();
+      }
+
+      // Right click on a nucleus removes it. While making a group it only
+      // takes the nucleus out of that group, leaving the nucleus and its
+      // perimeter / interior classification alone.
+      function rightClick(q) {
+        if (!ui.grouping) return removeNucleus(q);
+        const here = q.groups.find((x) => x.g === ui.group + 1);
+        if (!here) return;
+        cur.undo.push(JSON.stringify(cur.edits));
+        cur.edits.groups[ui.group].members.splice(here.m, 1);
+        analyse(cur, 'classify');
+        tipEl.hidden = true;
+        ui.hover = null;
+        refresh();
+      }
+
+      // Right click on a nucleus acts on it (above); held anywhere else, it
+      // shows the image alone.
+      canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+      canvas.addEventListener('mousedown', (e) => {
+        if (e.button !== 2 || !cur) return;
+        const q = editable() && nucleusAt(pointAt(e));
+        if (q) return rightClick(q);
+        ui.peek = true;
+        tipEl.hidden = true;
+        render();
+      });
+      window.addEventListener('mouseup', (e) => {
+        if (e.button !== 2 || !ui.peek) return;
+        ui.peek = false;
+        render();
+      });
+
+      function undo() {
+        if (!cur?.undo.length) return;
+        cur.edits = JSON.parse(cur.undo.pop());
+        if (ui.group != null && !cur.edits.groups[ui.group]) ui.group = null;
+        analyse(cur, 'outline');
+        refresh();
+      }
+
+      // "new group": while on, clicks put nuclei in a fresh group. Turning
+      // it off (or Esc) finishes the group; groups left empty are dropped.
+      function setGrouping(on) {
+        ui.grouping = on;
+        ui.group = null;
+        $('new-group').classList.toggle('active', on);
+        syncHint();
+        if (!cur?.result) return;
+        const G = cur.edits.groups;
+        if (!on && G.some((g) => !g.members.length)) {
+          cur.edits.groups = G.filter((g) => g.members.length);
+          analyse(cur, 'classify');
+        }
+        refresh();
+      }
+
+      function syncHint() {
+        $('hint-edit').classList.toggle('off', ui.grouping);
+        $('hint-group').classList.toggle('off', !ui.grouping);
+      }
+
+      $('new-group').addEventListener('click', () => setGrouping(!ui.grouping));
+      document.addEventListener('keydown', (e) => {
+        const t = e.target;
+        if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
+        if (t.tagName === 'INPUT' && t.type !== 'checkbox' && t.type !== 'range') return;
+        if (t.tagName === 'TEXTAREA' || t.isContentEditable || help.open) return;
+        if (e.key === 'g') setGrouping(!ui.grouping);
+        else if (e.key === 'Escape' && ui.grouping) setGrouping(false);
+      });
+      syncHint();
+
+      $('undo').addEventListener('click', undo);
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'z' && (e.metaKey || e.ctrlKey) && !e.shiftKey) {
+          const t = e.target;
+          if (t.tagName === 'INPUT' && t.type !== 'range') return;
+          e.preventDefault();
+          undo();
+        }
+      });
+
+      $('clear-edits').addEventListener('click', () => {
+        if (!cur || !editCount(cur)) return;
+        cur.undo.push(JSON.stringify(cur.edits));
+        cur.edits = noEdits();
+        analyse(cur, 'outline');
+        refresh();
+      });
+
+      function syncEditButtons() {
+        $('undo').disabled = !cur?.undo.length;
+        // A fixed label, so the toolbar never rewraps as edits come and go.
+        const n = cur ? editCount(cur) : 0;
+        $('clear-edits').disabled = !n;
+        $('clear-edits').title = n
+          ? `Drop all ${n} hand edit${n === 1 ? '' : 's'} on this image`
+          : 'No hand edits on this image';
+      }
+
+      for (const b of document.querySelectorAll('[data-view]')) {
+        b.addEventListener('click', () => {
+          ui.view = b.dataset.view;
+          for (const o of document.querySelectorAll('[data-view]'))
+            o.classList.toggle('active', o === b);
+          render();
+        });
+      }
+
+      $('zoom').addEventListener('click', () => {
+        ui.zoom = !ui.zoom;
+        $('zoom').classList.toggle('active', ui.zoom);
+        render();
+      });
+
+      function setNumbers(on) {
+        ui.numbers = on;
+        $('numbers').checked = on;
+        try {
+          localStorage.setItem('dapi-counter:numbers', on ? '1' : '0');
+        } catch {}
+        render();
+      }
+
+      $('numbers').checked = ui.numbers;
+      $('numbers').addEventListener('change', () => setNumbers($('numbers').checked));
+      document.addEventListener('keydown', (e) => {
+        const t = e.target;
+        if (e.key !== 'n' || e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+        const typing = t.tagName === 'INPUT' && t.type !== 'checkbox' && t.type !== 'range';
+        if (typing || t.tagName === 'TEXTAREA' || t.isContentEditable) return;
+        setNumbers(!ui.numbers);
+      });
+
+      let resizeFrame = 0;
+      window.addEventListener('resize', () => {
+        cancelAnimationFrame(resizeFrame);
+        resizeFrame = requestAnimationFrame(render);
+      });
+
+      // ---- XLSX --------------------------------------------------------------
+
+      function save(blob, name) {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      }
+
+      const CRC = new Uint32Array(256).map((_, n) => {
+        let c = n;
+        for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+        return c;
+      });
+
+      function crc32(bytes) {
+        let c = ~0;
+        for (const b of bytes) c = CRC[(c ^ b) & 255] ^ (c >>> 8);
+        return ~c >>> 0;
+      }
+
+      // An uncompressed zip of { path: string } entries.
+      function zip(files) {
+        const enc = new TextEncoder();
+        const parts = [];
+        const dir = [];
+        let offset = 0;
+        for (const [path, text] of Object.entries(files)) {
+          const name = enc.encode(path);
+          const data = typeof text === 'string' ? enc.encode(text) : text;
+          const crc = crc32(data);
+          const head = (sig, size) => {
+            const v = new DataView(new ArrayBuffer(size));
+            v.setUint32(0, sig, true);
+            return v;
+          };
+          const local = head(0x04034b50, 30);
+          local.setUint16(4, 20, true);
+          local.setUint16(6, 0x800, true);
+          local.setUint32(14, crc, true);
+          local.setUint32(18, data.length, true);
+          local.setUint32(22, data.length, true);
+          local.setUint16(26, name.length, true);
+          parts.push(local, name, data);
+          const central = head(0x02014b50, 46);
+          central.setUint16(4, 20, true);
+          central.setUint16(6, 20, true);
+          central.setUint16(8, 0x800, true);
+          central.setUint32(16, crc, true);
+          central.setUint32(20, data.length, true);
+          central.setUint32(24, data.length, true);
+          central.setUint16(28, name.length, true);
+          central.setUint32(42, offset, true);
+          dir.push(central, name);
+          offset += 30 + name.length + data.length;
+        }
+        const size = dir.reduce((s, p) => s + p.byteLength, 0);
+        const end = new DataView(new ArrayBuffer(22));
+        end.setUint32(0, 0x06054b50, true);
+        end.setUint16(8, dir.length / 2, true);
+        end.setUint16(10, dir.length / 2, true);
+        end.setUint32(12, size, true);
+        end.setUint32(16, offset, true);
+        return new Blob([...parts, ...dir, end], { type: 'application/zip' });
+      }
+
+      const xml = (v) =>
+        String(v).replace(
+          /[<>&"]/g,
+          (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[c]
+        );
+
+      // A workbook of [{ name, rows }]; numbers and numeric strings become
+      // number cells.
+      function xlsx(sheets) {
+        const col = (n) =>
+          (n >= 26 ? col(((n / 26) | 0) - 1) : '') + String.fromCharCode(65 + (n % 26));
+        const cell = (v, ref) =>
+          v === '' || v == null
+            ? ''
+            : typeof v === 'number' || /^-?\d+(\.\d+)?$/.test(v)
+              ? `<c r="${ref}"><v>${v}</v></c>`
+              : `<c r="${ref}" t="inlineStr"><is><t>${xml(v)}</t></is></c>`;
+        const NS = 'http://schemas.openxmlformats.org';
+        const files = {
+          '[Content_Types].xml':
+            `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="${NS}/package/2006/content-types">` +
+            '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+            '<Default Extension="xml" ContentType="application/xml"/>' +
+            '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+            sheets
+              .map(
+                (_, i) =>
+                  `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`
+              )
+              .join('') +
+            '</Types>',
+          '_rels/.rels':
+            `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="${NS}/package/2006/relationships">` +
+            `<Relationship Id="rId1" Type="${NS}/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`,
+          'xl/workbook.xml':
+            `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="${NS}/spreadsheetml/2006/main" xmlns:r="${NS}/officeDocument/2006/relationships"><sheets>` +
+            sheets
+              .map((s, i) => `<sheet name="${xml(s.name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`)
+              .join('') +
+            '</sheets></workbook>',
+          'xl/_rels/workbook.xml.rels':
+            `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="${NS}/package/2006/relationships">` +
+            sheets
+              .map(
+                (_, i) =>
+                  `<Relationship Id="rId${i + 1}" Type="${NS}/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`
+              )
+              .join('') +
+            '</Relationships>',
+        };
+        sheets.forEach((s, i) => {
+          files[`xl/worksheets/sheet${i + 1}.xml`] =
+            `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="${NS}/spreadsheetml/2006/main"><sheetData>` +
+            s.rows
+              .map(
+                (row, y) =>
+                  `<row r="${y + 1}">${row.map((v, x) => cell(v, col(x) + (y + 1))).join('')}</row>`
+              )
+              .join('') +
+            '</sheetData></worksheet>';
+        });
+        return new Blob([zip(files)], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        });
+      }
+
+      // An organoids sheet (one row per organoid, a total per image and
+      // across images) and a nuclei sheet (one row per nucleus).
+      $('xlsx-all').addEventListener('click', () => {
+        const done = images.filter((r) => r.result);
+        const fix = (v, d) => (v == null || !isFinite(v) ? '' : v.toFixed(d));
+        const orgRows = [
+          [
+            'image',
+            'organoid',
+            'excluded',
+            'nuclei',
+            'perimeter_nuclei',
+            'interior_nuclei',
+            'percent_perimeter',
+            'perimeter_px',
+            'perimeter_um',
+            'perimeter_nuclei_per_100um',
+            'area_um2',
+            'um_per_px',
+          ],
+        ];
+        const nucRows = [
+          [
+            'image',
+            'organoid',
+            'number',
+            'x_px',
+            'y_px',
+            'position',
+            'by_hand',
+            'groups',
+            'group_numbers',
+          ],
+        ];
+        const groupRows = [['image', 'group', 'nuclei', 'perimeter', 'interior', 'outside']];
+        let all = { nuclei: 0, perim: 0, lengthUm: 0, allUm: true };
+        for (const r of done) {
+          const k = r.origW / r.work.width;
+          const um = umPerPx(r);
+          const row = (label, excluded, nuclei, perim, length, area) => [
+            r.name,
+            label,
+            excluded,
+            nuclei,
+            perim,
+            nuclei - perim,
+            nuclei ? fix((100 * perim) / nuclei, 1) : '',
+            fix(length * k, 1),
+            um ? fix(length * k * um, 1) : '',
+            um && length ? fix((100 * perim) / (length * k * um), 2) : '',
+            um && area != null ? fix(area * (k * um) ** 2, 1) : '',
+            um ? +um.toPrecision(6) : '',
+          ];
+          for (const o of r.result.organoids) {
+            orgRows.push(
+              row(o.id, r.excluded.has(o.id) ? 1 : 0, o.nuclei, o.perim, o.length, o.area)
+            );
+          }
+          const tot = totals(r);
+          const area = included(r).reduce((s, o) => s + o.area, 0);
+          orgRows.push(row('total', '', tot.nuclei, tot.perim, tot.length, area));
+          all.nuclei += tot.nuclei;
+          all.perim += tot.perim;
+          if (um) all.lengthUm += tot.length * k * um;
+          else all.allUm = false;
+          // By organoid, then number. A nucleus's groups and its number in
+          // each are listed side by side, e.g. "1, 3" and "4, 1".
+          const order = [...r.result.nuclei].sort(
+            (a, b) => (a.org || Infinity) - (b.org || Infinity) || (a.num ?? 0) - (b.num ?? 0)
+          );
+          order.forEach((q) => {
+            nucRows.push([
+              r.name,
+              q.org || '',
+              q.num ?? '',
+              fix(q.x * k, 1),
+              fix(q.y * (r.origH / r.work.height), 1),
+              !q.org ? 'outside' : q.perim ? 'perimeter' : 'interior',
+              q.added || q.force != null ? 1 : 0,
+              q.groups.map((x) => x.g).join(', '),
+              q.groups.map((x) => x.num).join(', '),
+            ]);
+          });
+          r.result.groups.forEach((g) => {
+            if (g) {
+              groupRows.push([
+                r.name,
+                g.id,
+                g.nuclei,
+                g.perim,
+                g.inner,
+                g.nuclei - g.perim - g.inner,
+              ]);
+            }
+          });
+        }
+        orgRows.push([
+          'all images',
+          'total',
+          '',
+          all.nuclei,
+          all.perim,
+          all.nuclei - all.perim,
+          all.nuclei ? fix((100 * all.perim) / all.nuclei, 1) : '',
+          '',
+          all.allUm ? fix(all.lengthUm, 1) : '',
+          all.allUm && all.lengthUm ? fix((100 * all.perim) / all.lengthUm, 2) : '',
+          '',
+          '',
+        ]);
+        save(
+          xlsx([
+            { name: 'organoids', rows: orgRows },
+            ...(groupRows.length > 1 ? [{ name: 'groups', rows: groupRows }] : []),
+            { name: 'nuclei', rows: nucRows },
+          ]),
+          'dapi-counter.xlsx'
+        );
+      });
+
+      // ---- Decoding --------------------------------------------------------
+      // Browsers decode JPEG and PNG (and Safari HEIC). TIFF is decoded here;
+      // HEIC elsewhere loads a decoder from a CDN the first time it's needed.
+
+      function loadImage(blob) {
+        return new Promise((resolve, reject) => {
+          const url = URL.createObjectURL(blob);
+          const img = new Image();
+          img.onload = () => {
+            URL.revokeObjectURL(url);
+            resolve(img);
+          };
+          img.onerror = () => {
+            URL.revokeObjectURL(url);
+            reject(new Error("couldn't decode"));
+          };
+          img.src = url;
+        });
+      }
+
+      const isTiff = (b) =>
+        b.length > 8 &&
+        ((b[0] === 0x49 && b[1] === 0x49 && b[2] === 42) ||
+          (b[0] === 0x4d && b[1] === 0x4d && b[3] === 42));
+
+      const isHeic = (b) =>
+        String.fromCharCode(...b.subarray(4, 8)) === 'ftyp' &&
+        /^(heic|heix|hevc|hevx|heim|heis|mif1|msf1)$/.test(
+          String.fromCharCode(...b.subarray(8, 12))
+        );
+
+      let heicLib = null;
+      function loadHeic() {
+        heicLib ||= new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
+          s.onload = () => resolve(window.heic2any);
+          s.onerror = () => {
+            heicLib = null;
+            reject(new Error("couldn't load the HEIC decoder"));
+          };
+          document.head.appendChild(s);
+        });
+        return heicLib;
+      }
+
+      // { source (image or canvas), width, height, umPerPx? }
+      async function decodeFile(blob, name) {
+        const bytes = new Uint8Array(await blob.arrayBuffer());
+        if (isTiff(bytes)) return decodeTiff(bytes);
+        try {
+          const img = await loadImage(blob);
+          return { source: img, width: img.naturalWidth, height: img.naturalHeight };
+        } catch (err) {
+          if (!isHeic(bytes) && !/\.hei[cf]$/i.test(name)) throw err;
+          const heic2any = await loadHeic();
+          let png = await heic2any({ blob, toType: 'image/png' });
+          if (Array.isArray(png)) png = png[0];
+          const img = await loadImage(png);
+          return { source: img, width: img.naturalWidth, height: img.naturalHeight };
+        }
+      }
+
+      // Baseline TIFF: the first image, in strips, 8/16/32-bit, grey or RGB,
+      // uncompressed, LZW, Deflate or PackBits. Deeper than 8 bits is
+      // stretched from the darkest pixel to the 99.95th percentile.
+      async function decodeTiff(b) {
+        const dv = new DataView(b.buffer, b.byteOffset, b.byteLength);
+        const le = b[0] === 0x49;
+        const u16 = (o) => dv.getUint16(o, le);
+        const u32 = (o) => dv.getUint32(o, le);
+        const SIZE = { 1: 1, 2: 1, 3: 2, 4: 4, 5: 8, 6: 1, 7: 1, 8: 2, 9: 4, 10: 8, 11: 4, 12: 8 };
+        const ifd = u32(4);
+        const tags = {};
+        for (let k = 0; k < u16(ifd); k++) {
+          const e = ifd + 2 + 12 * k;
+          const tag = u16(e);
+          const type = u16(e + 2);
+          const count = u32(e + 4);
+          const size = (SIZE[type] || 1) * count;
+          const off = size <= 4 ? e + 8 : u32(e + 8);
+          const vals = [];
+          if (type === 2) {
+            tags[tag] = new TextDecoder().decode(b.subarray(off, off + count)).replace(/\0+$/, '');
+            continue;
+          }
+          for (let j = 0; j < Math.min(count, 1e6); j++) {
+            if (type === 3) vals.push(u16(off + 2 * j));
+            else if (type === 4) vals.push(u32(off + 4 * j));
+            else if (type === 5) vals.push(u32(off + 8 * j) / (u32(off + 8 * j + 4) || 1));
+            else vals.push(b[off + j]);
+          }
+          tags[tag] = vals;
+        }
+        const one = (t, def) => (tags[t] ? tags[t][0] : def);
+        const W = one(256);
+        const H = one(257);
+        const bps = one(258, 1);
+        const spp = one(277, 1);
+        const comp = one(259, 1);
+        const photo = one(262, 1);
+        const fmt = one(339, 1);
+        if (tags[322]) throw new Error('tiled TIFFs aren’t supported');
+        if (spp > 1 && one(284, 1) !== 1) throw new Error('planar TIFFs aren’t supported');
+        if (![8, 16, 32].includes(bps)) throw new Error(`${bps}-bit TIFFs aren’t supported`);
+        if (photo === 3) throw new Error('palette TIFFs aren’t supported');
+        const bpp = (bps / 8) * spp;
+        const raw = new Uint8Array(W * H * bpp);
+        const rps = one(278, H);
+        let at = 0;
+        const offs = tags[273];
+        const counts = tags[279];
+        for (let s = 0; s < offs.length; s++) {
+          const src = b.subarray(offs[s], offs[s] + counts[s]);
+          const want = Math.min(rps, H - s * rps) * W * bpp;
+          let strip;
+          if (comp === 1) strip = src;
+          else if (comp === 5) strip = lzw(src, want);
+          else if (comp === 8 || comp === 32946) {
+            const out = new Response(
+              new Blob([src]).stream().pipeThrough(new DecompressionStream('deflate'))
+            );
+            strip = new Uint8Array(await out.arrayBuffer());
+          } else if (comp === 32773) strip = packBits(src, want);
+          else throw new Error(`TIFF compression ${comp} isn’t supported`);
+          raw.set(strip.subarray(0, Math.min(want, raw.length - at)), at);
+          at += want;
+        }
+        // Samples as numbers, undoing horizontal differencing.
+        const n = W * H * spp;
+        const v = new Float32Array(n);
+        const rdv = new DataView(raw.buffer);
+        for (let i = 0; i < n; i++) {
+          v[i] =
+            bps === 8
+              ? raw[i]
+              : bps === 16
+                ? rdv.getUint16(2 * i, le)
+                : fmt === 3
+                  ? rdv.getFloat32(4 * i, le)
+                  : rdv.getUint32(4 * i, le);
+        }
+        if (one(317, 1) === 2) {
+          const mod = bps === 32 ? 2 ** 32 : 2 ** bps;
+          for (let y = 0; y < H; y++) {
+            for (let i = y * W * spp + spp; i < (y + 1) * W * spp; i++)
+              v[i] = (v[i] + v[i - spp]) % mod;
+          }
+        }
+        let lo = 0;
+        let hi = 255;
+        if (bps > 8) {
+          lo = Infinity;
+          for (let i = 0; i < n; i++) if (v[i] < lo) lo = v[i];
+          hi = Math.max(lo + 1, quantile(v, 0.9995));
+        }
+        const img = new ImageData(W, H);
+        const k = 255 / (hi - lo);
+        for (let i = 0; i < W * H; i++) {
+          const j = i * spp;
+          let r = (v[j] - lo) * k;
+          let g = spp >= 3 ? (v[j + 1] - lo) * k : r;
+          let bl = spp >= 3 ? (v[j + 2] - lo) * k : r;
+          if (photo === 0) (r = 255 - r), (g = 255 - g), (bl = 255 - bl);
+          img.data[4 * i] = r;
+          img.data[4 * i + 1] = g;
+          img.data[4 * i + 2] = bl;
+          img.data[4 * i + 3] = 255;
+        }
+        const c = document.createElement('canvas');
+        c.width = W;
+        c.height = H;
+        c.getContext('2d').putImageData(img, 0, 0);
+        // ImageJ writes pixels per micron in XResolution with unit=micron in
+        // its description; otherwise trust only a centimetre unit.
+        const xres = one(282, 0);
+        let um = null;
+        if (xres > 0 && /unit=(micron|um|µm|\\u00B5m)/.test(tags[270] || '')) um = 1 / xres;
+        else if (xres > 0 && one(296, 2) === 3 && 1e4 / xres < 50) um = 1e4 / xres;
+        return { source: c, width: W, height: H, umPerPx: um };
+      }
+
+      // TIFF LZW: MSB-first codes, 9 to 12 bits, widening one code early.
+      function lzw(src, want) {
+        const out = new Uint8Array(want);
+        const prefix = new Int32Array(4096);
+        const suffix = new Uint8Array(4096);
+        const len = new Int32Array(4096);
+        for (let i = 0; i < 256; i++) (prefix[i] = -1), (suffix[i] = i), (len[i] = 1);
+        let next = 258;
+        let width = 9;
+        let old = -1;
+        let op = 0;
+        let bit = 0;
+        const total = src.length * 8;
+        const read = () => {
+          let v = 0;
+          for (let k = 0; k < width; k++, bit++)
+            v = (v << 1) | ((src[bit >> 3] >> (7 - (bit & 7))) & 1);
+          return v;
+        };
+        const first = (c) => {
+          while (prefix[c] !== -1) c = prefix[c];
+          return suffix[c];
+        };
+        const emit = (c) => {
+          const l = len[c];
+          for (let p = op + l - 1; c !== -1; c = prefix[c], p--) if (p < want) out[p] = suffix[c];
+          op += l;
+        };
+        const add = (p, s) => {
+          if (next >= 4096) return;
+          prefix[next] = p;
+          suffix[next] = s;
+          len[next] = len[p] + 1;
+          next++;
+          if (next >= (1 << width) - 1 && width < 12) width++;
+        };
+        while (bit + width <= total && op < want) {
+          const code = read();
+          if (code === 257) break;
+          if (code === 256) {
+            next = 258;
+            width = 9;
+            old = -1;
+            continue;
+          }
+          if (old === -1) emit(code);
+          else if (code < next) {
+            emit(code);
+            add(old, first(code));
+          } else {
+            add(old, first(old));
+            emit(code);
+          }
+          old = code;
+        }
+        return out;
+      }
+
+      function packBits(src, want) {
+        const out = new Uint8Array(want);
+        let i = 0;
+        let o = 0;
+        while (i < src.length && o < want) {
+          const n = (src[i++] << 24) >> 24;
+          if (n >= 0) for (let k = 0; k <= n && o < want; k++) out[o++] = src[i++];
+          else if (n !== -128) {
+            const v = src[i++];
+            for (let k = 0; k < 1 - n && o < want; k++) out[o++] = v;
+          }
+        }
+        return out;
+      }
+
+      // ---- Images ----------------------------------------------------------
+
+      const looksLikeImage = (f) =>
+        f.type.startsWith('image/') || /\.(tiff?|hei[cf])$/i.test(f.name || '');
+
+      // Add image files and show the first. `saved` restores records from
+      // IndexedDB: [{ id, blob, name, session }].
+      function addImages(files, saved, showId) {
+        const bad = [];
+        const recs = [];
+        for (const f of files) {
+          if (!looksLikeImage(f)) {
+            bad.push(f.name);
+            continue;
+          }
+          recs.push({ id: crypto.randomUUID(), blob: f, name: f.name || 'pasted image' });
+        }
+        for (const s of saved || []) recs.push({ ...s, saved: true });
+        errorEl.textContent = bad.length
+          ? `Skipped files that aren't images: ${bad.join(', ')}`
+          : '';
+        if (!recs.length) return;
+        const show = recs.find((r) => r.id === showId) || recs[0];
+        for (const r of recs) {
+          const s = r.session;
+          Object.assign(r, {
+            params: { ...DEFAULTS, ...s?.params },
+            edits: { ...noEdits(), ...s?.edits },
+            excluded: new Set(s?.excluded),
+            umPerPx: s?.umPerPx ?? null,
+            autoSize: s?.autoSize ?? null,
+            restoreW: s?.W,
+            undo: [],
+            status: 'loading',
+          });
+          delete r.session;
+          images.push(r);
+          load(r, r === show);
+        }
+        saveImageList();
+        renderImageList();
+      }
+
+      async function load(r, show) {
+        try {
+          // Copy a dropped file into memory so it doesn't depend on the
+          // original staying where it was.
+          if (!r.saved) {
+            r.blob = new Blob([await r.blob.arrayBuffer()], { type: r.blob.type });
+            dbPut('img:' + r.id, { blob: r.blob, name: r.name });
+          }
+          const d = await decodeFile(r.blob, r.name);
+          if (!images.includes(r)) return;
+          r.img = d.source;
+          r.origW = d.width;
+          r.origH = d.height;
+          r.calMeta = d.umPerPx || (await readCalibration(r.blob));
+          const s = Math.min(1, WORK_MAX / Math.max(d.width, d.height));
+          r.work = document.createElement('canvas');
+          r.work.width = Math.round(d.width * s);
+          r.work.height = Math.round(d.height * s);
+          const wctx = r.work.getContext('2d', { willReadFrequently: true });
+          wctx.imageSmoothingQuality = 'high';
+          wctx.drawImage(d.source, 0, 0, r.work.width, r.work.height);
+          // Edits are in working pixels; drop them if that size changed.
+          if (r.restoreW && r.restoreW !== r.work.width) r.edits = noEdits();
+          r.status = 'queued';
+          if (show || !cur) switchTo(r);
+          else queueBackground();
+        } catch (err) {
+          console.error(err);
+          r.status = 'error';
+          r.error = /HEIC|TIFF/.test(err.message) ? err.message : "couldn't decode this image";
+        }
+        renderImageList();
+      }
+
+      function switchTo(r) {
+        if (r === cur || !r.work) return;
+        if (ui.grouping) setGrouping(false);
+        // A re-run queued for the old image must not land on this one.
+        clearTimeout(timer);
+        pending = null;
+        if (cur) dropPixels(cur);
+        cur = r;
+        ui.hover = null;
+        fileNameEl.textContent = `${r.name} · ${r.origW} × ${r.origH}`;
+        fileNameEl.hidden = false;
+        dropEl.classList.add('compact');
+        $('drop-text').textContent = 'Drop or paste more images, or';
+        for (const id of ['summary-section', 'image-section', 'tune-section', 'table-section']) {
+          $(id).hidden = false;
+        }
+        syncScale(true);
+        r.status = 'analysing';
+        render();
+        renderImageList();
+        schedule('all');
+      }
+
+      // Let go of an image's per-pixel arrays once it's off screen.
+      function dropPixels(r) {
+        r.F = null;
+        r.det = null;
+        r.org = null;
+      }
+
+      function removeImage(r) {
+        const i = images.indexOf(r);
+        if (i < 0) return;
+        images.splice(i, 1);
+        dbDel('img:' + r.id);
+        dbDel('session:' + r.id);
+        if (r === cur) {
+          cur = null;
+          const next = images[Math.min(i, images.length - 1)];
+          if (next?.work) switchTo(next);
+          else if (!images.length) showEmpty();
+        }
+        saveImageList();
+        renderImageList();
+      }
+
+      function showEmpty() {
+        clearTimeout(timer);
+        pending = null;
+        busyEl.hidden = true;
+        cur = null;
+        fileNameEl.hidden = true;
+        dropEl.classList.remove('compact');
+        $('drop-text').textContent = 'Drop images here, paste one, or';
+        for (const id of ['summary-section', 'image-section', 'tune-section', 'table-section']) {
+          $(id).hidden = true;
+        }
+        $('groups-section').hidden = true;
+        ui.grouping = false;
+        ui.group = null;
+        $('new-group').classList.remove('active');
+        syncHint();
+      }
+
+      // Analyse the next waiting image while nothing else is going on.
+      let bgTimer = null;
+
+      function queueBackground() {
+        clearTimeout(bgTimer);
+        bgTimer = setTimeout(() => {
+          if (pending != null) return queueBackground();
+          const r = images.find((r) => r !== cur && r.work && !r.result && r.status !== 'error');
+          if (!r) return;
+          r.status = 'analysing';
+          renderImageList();
+          // Let the "analysing" label paint before blocking.
+          requestAnimationFrame(() =>
+            setTimeout(() => {
+              if (r !== cur && !r.result && images.includes(r)) {
+                try {
+                  analyse(r, 'all');
+                  saveRecordSession(r);
+                } catch (err) {
+                  console.error(err);
+                  r.status = 'error';
+                  r.error = 'analysis failed: ' + err.message;
+                }
+                if (r !== cur) dropPixels(r);
+              }
+              renderImageList();
+              queueBackground();
+            }, 0)
+          );
+        }, 150);
+      }
+
+      function renderImageList() {
+        const host = $('image-list');
+        $('images').hidden = !images.length;
+        const waiting = images.filter((r) => !r.result && r.status !== 'error').length;
+        $('images-count').textContent =
+          `${images.length} image${images.length === 1 ? '' : 's'}` +
+          (waiting ? ` · analysing ${waiting}…` : '');
+        $('xlsx-all').disabled = !!waiting;
+        $('xlsx-all').title = waiting ? 'Waiting for every image to be analysed' : '';
+        $('scale-all').hidden = images.length < 2 || !umPerPx();
+        host.textContent = '';
+        for (const r of images) {
+          let sub;
+          if (r.status === 'error') sub = r.error;
+          else if (!r.result) sub = r.status === 'analysing' ? 'analysing…' : 'waiting';
+          else {
+            const t = totals(r);
+            sub = `${t.perim} of ${t.nuclei} nuclei on the perimeter`;
+          }
+          const chip = document.createElement('div');
+          chip.className = 'image-chip' + (r === cur ? ' active' : '');
+          chip.innerHTML =
+            '<button type="button" class="pick"><span class="nm mono"></span><span class="st"></span></button>' +
+            '<button type="button" class="rm" title="Remove this image">×</button>';
+          chip.querySelector('.nm').textContent = r.name;
+          chip.querySelector('.st').textContent = sub;
+          chip.querySelector('.pick').addEventListener('click', () => switchTo(r));
+          chip.querySelector('.rm').addEventListener('click', () => removeImage(r));
+          host.appendChild(chip);
+        }
+      }
+
+      $('clear-all').addEventListener('click', () => {
+        const what =
+          images.length === 1
+            ? 'this image and its edits'
+            : `all ${images.length} images and their edits`;
+        if (!confirm(`Remove ${what} from this page? This can’t be undone.`)) return;
+        for (const r of images) {
+          dbDel('img:' + r.id);
+          dbDel('session:' + r.id);
+        }
+        images.length = 0;
+        showEmpty();
+        saveImageList();
+        renderImageList();
+      });
+
+      // ---- Pixel size --------------------------------------------------------
+      // cellSens (Olympus / Evident) JPEGs keep their calibration as
+      // zlib-compressed JSON in the EXIF MakerNote, behind an "OLYXV" header;
+      // ImageJ TIFFs keep it in the resolution tags. Anything else needs the
+      // pixel size typed in.
+
+      async function readCalibration(blob) {
+        try {
+          const note = makerNote(new DataView(await blob.arrayBuffer()));
+          if (!note || String.fromCharCode(...note.subarray(0, 5)) !== 'OLYXV') return null;
+          const z = note.indexOf(0x78, 5);
+          const stream = new Blob([note.subarray(z)])
+            .stream()
+            .pipeThrough(new DecompressionStream('deflate'));
+          const doc = JSON.parse(await new Response(stream).text());
+          const layer = doc.layer?.[0] || {};
+          const [cx] = layer.calibration || [];
+          const x = toMicrons(cx?.scale || doc.canvas?.scale?.x);
+          if (!x) return null;
+          return { x, lenX: cx?.length || doc.canvas?.size?.width };
+        } catch (err) {
+          console.warn('Could not read the calibration', err);
+          return null;
+        }
+      }
+
+      // { unit: '10^-6m^1', value } -> µm
+      function toMicrons(q) {
+        const m = /^10\^(-?\d+)m\^1$/.exec(q?.unit || '');
+        return m && q.value > 0 ? q.value * 10 ** (+m[1] + 6) : null;
+      }
+
+      function makerNote(dv) {
+        if (dv.byteLength < 4 || dv.getUint16(0) !== 0xffd8) return null;
+        let p = 2;
+        while (p + 10 < dv.byteLength) {
+          const marker = dv.getUint16(p);
+          if (marker === 0xffda) break;
+          // APP1 starting "Exif"
+          if (marker === 0xffe1 && dv.getUint32(p + 4) === 0x45786966) {
+            return tiffTag(dv, p + 10, 0x927c);
+          }
+          p += 2 + dv.getUint16(p + 2);
+        }
+        return null;
+      }
+
+      // The bytes of an Exif-IFD tag in the TIFF block starting at `t`.
+      function tiffTag(dv, t, want) {
+        const le = dv.getUint16(t) === 0x4949;
+        const u16 = (o) => dv.getUint16(t + o, le);
+        const u32 = (o) => dv.getUint32(t + o, le);
+        const find = (ifd, tag) => {
+          const n = u16(ifd);
+          for (let k = 0; k < n; k++) {
+            const e = ifd + 2 + 12 * k;
+            if (u16(e) === tag) return { count: u32(e + 4), offset: u32(e + 8) };
+          }
+          return null;
+        };
+        const exif = find(u32(4), 0x8769);
+        const tag = exif && find(exif.offset, want);
+        return tag ? new Uint8Array(dv.buffer, t + tag.offset, tag.count) : null;
+      }
+
+      // Metadata pixel size in µm for this image, rescaled if it was resized.
+      function metaPixel(t = cur) {
+        const c = t?.calMeta;
+        if (!c) return null;
+        if (typeof c === 'number') return c;
+        return c.x * (c.lenX && t.origW ? c.lenX / t.origW : 1);
+      }
+
+      function syncScale(setInput) {
+        if (!cur) return;
+        const meta = metaPixel();
+        const input = $('um-per-px');
+        if (setInput) {
+          const v = cur.umPerPx || meta;
+          input.value = v ? +v.toPrecision(4) : '';
+        }
+        $('scale-row').classList.toggle('missing', !umPerPx());
+        $('scale-reset').hidden = !(meta && cur.umPerPx);
+        if (meta)
+          $('scale-reset').textContent = `use ${+meta.toPrecision(4)} µm/px (from metadata)`;
+        $('scale-note').textContent = !umPerPx()
+          ? 'No pixel size in this image’s metadata — enter one to see lengths in µm.'
+          : cur.umPerPx
+            ? 'entered by hand'
+            : 'from the image’s metadata';
+      }
+
+      function refreshUnits(setInput) {
+        syncScale(setInput);
+        if (!cur?.result) return render();
+        refresh();
+      }
+
+      $('um-per-px').addEventListener('input', () => {
+        if (!cur) return;
+        const v = parseFloat($('um-per-px').value);
+        const meta = metaPixel();
+        // Typing the metadata value back in is the same as using it.
+        cur.umPerPx = v > 0 && !(meta && Math.abs(v - meta) < 1e-9) ? v : null;
+        refreshUnits(false);
+      });
+
+      $('scale-reset').addEventListener('click', () => {
+        cur.umPerPx = null;
+        refreshUnits(true);
+      });
+
+      // Give every image the pixel size of the one on screen.
+      $('scale-all').addEventListener('click', () => {
+        const v = umPerPx();
+        if (!v) return;
+        for (const r of images) {
+          if (r === cur) continue;
+          const meta = metaPixel(r);
+          r.umPerPx = meta && Math.abs(meta - v) < 1e-9 ? null : v;
+          if (r.result) saveRecordSession(r);
+        }
+        renderImageList();
+      });
+
+      // ---- Getting images in ---------------------------------------------------
+
+      fileInput.addEventListener('change', () => {
+        addImages([...fileInput.files]);
+        fileInput.value = '';
+      });
+
+      let dragDepth = 0;
+      document.addEventListener('dragenter', (e) => {
+        e.preventDefault();
+        dragDepth++;
+        document.body.classList.add('dragging');
+      });
+      document.addEventListener('dragleave', () => {
+        dragDepth = Math.max(0, dragDepth - 1);
+        if (!dragDepth) document.body.classList.remove('dragging');
+      });
+      document.addEventListener('dragover', (e) => e.preventDefault());
+      document.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dragDepth = 0;
+        document.body.classList.remove('dragging');
+        addImages([...e.dataTransfer.files]);
+      });
+
+      document.addEventListener('paste', (e) => {
+        const files = [...(e.clipboardData?.items || [])]
+          .filter((it) => it.type.startsWith('image/'))
+          .map((it) => it.getAsFile());
+        if (!files.length) return;
+        e.preventDefault();
+        addImages(files);
+      });
+
+      // ---- Remembering the images -------------------------------------------
+      // Images are too big for localStorage, so they go in IndexedDB and come
+      // back on reload with their settings, exclusions, pixel size and hand
+      // edits. Keys: 'list' -> { ids, current }, 'img:<id>' -> { blob, name },
+      // 'session:<id>' -> the settings and edits.
+
+      let dbPromise = null;
+
+      function openDB() {
+        dbPromise ||= new Promise((resolve, reject) => {
+          const req = indexedDB.open('dapi-counter', 1);
+          req.onupgradeneeded = () => req.result.createObjectStore('images');
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+        return dbPromise;
+      }
+
+      async function dbPut(key, value) {
+        try {
+          const db = await openDB();
+          db.transaction('images', 'readwrite').objectStore('images').put(value, key);
+        } catch (err) {
+          console.warn('Could not save', key, err);
+        }
+      }
+
+      async function dbDel(key) {
+        try {
+          const db = await openDB();
+          db.transaction('images', 'readwrite').objectStore('images').delete(key);
+        } catch (err) {
+          console.warn('Could not delete', key, err);
+        }
+      }
+
+      async function dbGet(key) {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+          const req = db.transaction('images').objectStore('images').get(key);
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+      }
+
+      function saveImageList() {
+        dbPut('list', { ids: images.map((r) => r.id), current: cur?.id });
+      }
+
+      function sessionOf(r) {
+        return {
+          W: r.work.width,
+          params: r.params,
+          edits: r.edits,
+          excluded: [...r.excluded],
+          umPerPx: r.umPerPx,
+          autoSize: r.autoSize,
+        };
+      }
+
+      function saveRecordSession(r) {
+        dbPut('session:' + r.id, sessionOf(r));
+      }
+
+      let saveTimer = null;
+
+      // The image on screen, a moment after it last changed.
+      function saveSession() {
+        clearTimeout(saveTimer);
+        const r = cur;
+        saveTimer = setTimeout(() => {
+          if (!r?.work || !images.includes(r)) return;
+          saveRecordSession(r);
+          saveImageList();
+        }, 500);
+      }
+
+      async function loadSaved() {
+        try {
+          const list = await dbGet('list');
+          if (!list) return;
+          const saved = [];
+          for (const id of list.ids) {
+            const im = await dbGet('img:' + id);
+            if (im) saved.push({ id, ...im, session: await dbGet('session:' + id) });
+          }
+          if (!images.length) addImages([], saved, list.current);
+        } catch (err) {
+          console.warn('Could not restore the saved images', err);
+        }
+      }
+
+      buildKnobs();
+      loadSaved();
+    </script>
+  </body>
+</html>

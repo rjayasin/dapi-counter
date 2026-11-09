@@ -743,9 +743,10 @@
         <li>Click a row in the organoid table to leave that organoid out.</li>
         <li>
           Click “new group” (or press G), then click nuclei to count them as a group of their own.
-          Each gets a yellow ring and a yellow number in the order you click. Click a nucleus again
-          to take it out. Press Esc or click “new group” again to finish. A nucleus can be in
-          several groups, and groups don’t change the organoid counts.
+          Each gets a yellow ring and a yellow number in the order you click. Click or right-click a
+          nucleus again to take it out. Press Esc or click “new group” again to stop; turning it
+          back on adds to the same group. Each image has one group, and it doesn’t change the
+          organoid counts.
         </li>
       </ul>
       <p>
@@ -848,9 +849,8 @@
           right-click a nucleus to remove it · hold right click elsewhere for the original
         </span>
         <span id="hint-group">
-          adding to a new group: click nuclei to put them in it · click or right-click one again to
-          take it out · click empty space to add a nucleus to it · Esc or “new group” again to
-          finish
+          adding to the group: click nuclei to put them in it · click or right-click one again to
+          take it out · click empty space to add a nucleus to it · Esc or “new group” again to stop
         </span>
       </p>
       <div id="canvas-wrap">
@@ -891,7 +891,7 @@
     </section>
 
     <section id="groups-section" hidden>
-      <h2>Groups</h2>
+      <h2>Group</h2>
       <div class="table-wrap">
         <table>
           <thead>
@@ -901,15 +901,14 @@
               <th>perimeter</th>
               <th>interior</th>
               <th>outside</th>
-              <th><span class="visually-hidden">delete</span></th>
+              <th><span class="visually-hidden">clear</span></th>
             </tr>
           </thead>
           <tbody id="group-rows"></tbody>
         </table>
       </div>
       <p class="note">
-        A nucleus can be in several groups. Groups are counted on their own and don’t change the
-        organoid counts above.
+        The group is counted on its own and doesn’t change the organoid counts above.
       </p>
     </section>
 
@@ -1517,11 +1516,24 @@
         hover: null, // { nucleus } or { organoid }
         box: null,
         px: 1, // one CSS pixel in working-image pixels
-        grouping: false, // "new group" is on: clicks put nuclei in a group
-        group: null, // index of the group being added to, once it has a nucleus
+        grouping: false, // "new group" is on: clicks put nuclei in the group
       };
 
       const noEdits = () => ({ added: [], removed: [], forced: [], groups: [] });
+
+      // Each image has at most one group. Earlier versions allowed several;
+      // fold any saved ones into the first, dropping repeated nuclei.
+      function oneGroup(edits) {
+        if (edits.groups.length <= 1) return edits;
+        const members = [];
+        for (const g of edits.groups) {
+          for (const m of g.members) {
+            if (!members.some((n) => Math.hypot(n.x - m.x, n.y - m.y) < 1)) members.push(m);
+          }
+        }
+        edits.groups = members.length ? [{ members }] : [];
+        return edits;
+      }
       const editCount = (r) =>
         r.edits.added.length +
         r.edits.removed.length +
@@ -1814,8 +1826,8 @@
           g.lineJoin = 'round';
           g.lineWidth = 3 * px;
           g.strokeStyle = 'rgba(0,0,0,0.9)';
-          // The nucleus's own number in its colour, then its number in each
-          // of its groups in yellow, in group order.
+          // The nucleus's own number in its colour, then its number in the
+          // group in yellow.
           const gap = 0.3 * size;
           for (const q of nuclei) {
             const off = t.excluded.has(q.org);
@@ -1976,10 +1988,10 @@
         G.forEach((_, gi) => {
           const g = res[gi] || { nuclei: 0, perim: 0, inner: 0 };
           const tr = document.createElement('tr');
-          const adding = ui.grouping && ui.group === gi;
+          const adding = ui.grouping;
           tr.className = adding ? 'active' : '';
           const cells = [
-            `group ${gi + 1}` + (adding ? ' · adding' : ''),
+            'group' + (adding ? ' · adding' : ''),
             g.nuclei,
             g.perim,
             g.inner,
@@ -1993,8 +2005,8 @@
           const td = document.createElement('td');
           const del = document.createElement('button');
           del.type = 'button';
-          del.textContent = 'delete';
-          del.title = 'Delete this group; its nuclei stay where they are';
+          del.textContent = 'clear';
+          del.title = 'Empty the group; its nuclei stay where they are';
           del.addEventListener('click', () => deleteGroup(gi));
           td.appendChild(del);
           tr.appendChild(td);
@@ -2005,8 +2017,6 @@
       function deleteGroup(gi) {
         cur.undo.push(JSON.stringify(cur.edits));
         cur.edits.groups.splice(gi, 1);
-        if (ui.group === gi) ui.group = null;
-        else if (ui.group > gi) ui.group--;
         analyse(cur, 'classify');
         refresh();
       }
@@ -2078,7 +2088,7 @@
           const how = q.added ? 'added by hand' : q.force != null ? 'set by hand' : '';
           text = `nucleus${q.num ? ' ' + q.num : ''} · ${where}` + (how ? ` · ${how}` : '');
           if (q.org) text += ` · organoid ${q.org}`;
-          for (const x of q.groups || []) text += ` · group ${x.g} #${x.num}`;
+          for (const x of q.groups || []) text += ` · group #${x.num}`;
         } else if (l) {
           const o = cur.result.organoids[l - 1];
           text = `organoid ${l} · ${o.perim} of ${o.nuclei} nuclei on the perimeter`;
@@ -2106,15 +2116,12 @@
         const before = JSON.stringify(cur.edits);
         let stage = 'outline';
         if (ui.grouping) {
-          // Put the nucleus in the group being made (it stays in any others),
-          // or take it back out if it's already there.
+          // There is one group per image: put the nucleus in it, or take it
+          // back out if it's already there.
           const G = cur.edits.groups;
-          if (ui.group == null || !G[ui.group]) {
-            G.push({ members: [] });
-            ui.group = G.length - 1;
-          }
-          const members = G[ui.group].members;
-          const here = q?.groups.find((x) => x.g === ui.group + 1);
+          if (!G[0]) G.push({ members: [] });
+          const members = G[0].members;
+          const here = q?.groups.find((x) => x.g === 1);
           if (here) members.splice(here.m, 1);
           else if (q) members.push({ x: q.x, y: q.y });
           else {
@@ -2161,10 +2168,10 @@
       // perimeter / interior classification alone.
       function rightClick(q) {
         if (!ui.grouping) return removeNucleus(q);
-        const here = q.groups.find((x) => x.g === ui.group + 1);
+        const here = q.groups.find((x) => x.g === 1);
         if (!here) return;
         cur.undo.push(JSON.stringify(cur.edits));
-        cur.edits.groups[ui.group].members.splice(here.m, 1);
+        cur.edits.groups[0].members.splice(here.m, 1);
         analyse(cur, 'classify');
         tipEl.hidden = true;
         ui.hover = null;
@@ -2191,16 +2198,15 @@
       function undo() {
         if (!cur?.undo.length) return;
         cur.edits = JSON.parse(cur.undo.pop());
-        if (ui.group != null && !cur.edits.groups[ui.group]) ui.group = null;
         analyse(cur, 'outline');
         refresh();
       }
 
-      // "new group": while on, clicks put nuclei in a fresh group. Turning
-      // it off (or Esc) finishes the group; groups left empty are dropped.
+      // "new group": while on, clicks put nuclei in (or take them out of) the
+      // image's one group. Turning it off (or Esc) stops; an empty group is
+      // dropped.
       function setGrouping(on) {
         ui.grouping = on;
-        ui.group = null;
         $('new-group').classList.toggle('active', on);
         syncHint();
         if (!cur?.result) return;
@@ -2459,11 +2465,11 @@
             'y_px',
             'position',
             'by_hand',
-            'groups',
-            'group_numbers',
+            'in_group',
+            'group_number',
           ],
         ];
-        const groupRows = [['image', 'group', 'nuclei', 'perimeter', 'interior', 'outside']];
+        const groupRows = [['image', 'nuclei', 'perimeter', 'interior', 'outside']];
         let all = { nuclei: 0, perim: 0, lengthUm: 0, allUm: true };
         for (const r of done) {
           const k = r.origW / r.work.width;
@@ -2494,8 +2500,7 @@
           all.perim += tot.perim;
           if (um) all.lengthUm += tot.length * k * um;
           else all.allUm = false;
-          // By organoid, then number. A nucleus's groups and its number in
-          // each are listed side by side, e.g. "1, 3" and "4, 1".
+          // By organoid, then number.
           const order = [...r.result.nuclei].sort(
             (a, b) => (a.org || Infinity) - (b.org || Infinity) || (a.num ?? 0) - (b.num ?? 0)
           );
@@ -2508,22 +2513,12 @@
               fix(q.y * (r.origH / r.work.height), 1),
               !q.org ? 'outside' : q.perim ? 'perimeter' : 'interior',
               q.added || q.force != null ? 1 : 0,
-              q.groups.map((x) => x.g).join(', '),
-              q.groups.map((x) => x.num).join(', '),
+              q.groups.length ? 1 : 0,
+              q.groups[0]?.num ?? '',
             ]);
           });
-          r.result.groups.forEach((g) => {
-            if (g) {
-              groupRows.push([
-                r.name,
-                g.id,
-                g.nuclei,
-                g.perim,
-                g.inner,
-                g.nuclei - g.perim - g.inner,
-              ]);
-            }
-          });
+          const g = r.result.groups[0];
+          if (g) groupRows.push([r.name, g.nuclei, g.perim, g.inner, g.nuclei - g.perim - g.inner]);
         }
         orgRows.push([
           'all images',
@@ -2542,7 +2537,7 @@
         save(
           xlsx([
             { name: 'organoids', rows: orgRows },
-            ...(groupRows.length > 1 ? [{ name: 'groups', rows: groupRows }] : []),
+            ...(groupRows.length > 1 ? [{ name: 'group', rows: groupRows }] : []),
             { name: 'nuclei', rows: nucRows },
           ]),
           'dapi-counter.xlsx'
@@ -2831,7 +2826,7 @@
           const s = r.session;
           Object.assign(r, {
             params: { ...DEFAULTS, ...s?.params },
-            edits: { ...noEdits(), ...s?.edits },
+            edits: oneGroup({ ...noEdits(), ...s?.edits }),
             excluded: new Set(s?.excluded),
             umPerPx: s?.umPerPx ?? null,
             autoSize: s?.autoSize ?? null,
@@ -2940,7 +2935,6 @@
         }
         $('groups-section').hidden = true;
         ui.grouping = false;
-        ui.group = null;
         $('new-group').classList.remove('active');
         syncHint();
       }
